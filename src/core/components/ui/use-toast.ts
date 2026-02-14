@@ -1,11 +1,11 @@
 import * as React from "react"
 
-import type { Toast, ToastActionElement, ToastProps } from "@/core/components/ui/toast"
+import type { ToastActionElement, ToastProps } from "@/core/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
-type ToasterToast = Toast & {
+type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
@@ -134,7 +134,7 @@ function dispatch(action: Action) {
   })
 }
 
-function toast(props: Toast) {
+function toast(props: ToastProps) {
   const id = genId()
 
   const update = (props: ToasterToast) =>
