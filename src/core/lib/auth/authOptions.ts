@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { prisma } from "../prisma/client";
+import { prisma } from "../prisma/prisma";
+import { generateOTP, sendOTPEmail } from "../otp/otp";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,11 +10,14 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // JWT sessions
   },
+
   callbacks: {
+    // Sign in callback: runs only on login
     async signIn({ account, profile }) {
       if (account?.provider === "google" && profile) {
         const { name, email, picture, sub } = profile as {
@@ -23,51 +27,62 @@ export const authOptions: NextAuthOptions = {
           sub: string;
         };
 
-        try {
-          const existingUser = await prisma.user.findUnique({
-            where: { email },
-          });
+        const higherResImage = picture?.replace("=s96-c", "=s400-c");
 
-          const higherResImage = picture?.replace("=s96-c", "=s400-c");
+        try {
+          const existingUser = await prisma.user.findUnique({ where: { email } });
+          let isNewUser = false;
 
           if (!existingUser) {
+            // New user - mark as unverified
             await prisma.user.create({
               data: {
                 email,
                 name: name || null,
                 avatar: higherResImage || null,
                 googleId: sub,
-                isVerified: true,
+                isVerified: false,
               },
             });
+            isNewUser = true;
           } else if (!existingUser.googleId) {
-            // Update existing user with Google ID if they don't have one
+            // Existing user without Google ID - mark as unverified
             await prisma.user.update({
               where: { email },
               data: {
                 googleId: sub,
                 avatar: higherResImage || existingUser.avatar,
-                isVerified: true,
+                isVerified: false,
               },
             });
+            isNewUser = true;
+          }
+
+          // Send OTP only for new users
+          if (isNewUser) {
+            const code = await generateOTP(email);
+            await sendOTPEmail(email, code);
           }
         } catch (error) {
           console.error("Error during sign in:", error);
           return false;
         }
       }
-
       return true;
     },
 
-    async jwt({ token, user, account }) {
-      if (account?.provider === "google" && token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
+    // JWT callback: runs on login AND on every request
+    async jwt({ token, user }) {
+      if (user?.email) {
+        // On login: store stable info
+        token.userId = user.id;
+        token.email = user.email;
+      }
 
+      if (token.email) {
+        // On every request: fetch dynamic fields from DB
+        const dbUser = await prisma.user.findUnique({ where: { email: token.email } });
         if (dbUser) {
-          token.userId = dbUser.id;
           token.isVerified = dbUser.isVerified;
         }
       }
@@ -75,16 +90,12 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
+    // Session callback: attach stable + dynamic info to session
     async session({ session, token }) {
-      if (session.user && token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
-
-        if (dbUser) {
-          session.user.id = dbUser.id;
-          session.user.isVerified = dbUser.isVerified;
-        }
+      if (session.user) {
+        session.user.id = token.userId as string;
+        session.user.email = token.email as string;
+        session.user.isVerified = token.isVerified as boolean;
       }
       return session;
     },

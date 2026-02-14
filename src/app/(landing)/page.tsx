@@ -1,9 +1,8 @@
+import LandingPage from "@/features/landing/components/LandingPage"
+
 const page = () => {
-  return (
-    <div className='flex  justify-center items-center h-screen text-3xl'>
-      Welcome To Rebase
-    </div>
-  )
+  return <LandingPage />
+
 }
 
 export default page

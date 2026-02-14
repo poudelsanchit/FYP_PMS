@@ -26,3 +26,14 @@ model User {
 
   @@map("users")
 }
+
+model OTP {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([email, code])
+  @@map("otps")
+}
