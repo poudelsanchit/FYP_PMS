@@ -13,8 +13,9 @@ import { AppSidebar } from "./components/app-sidebar";
 import { IHeaderData, ISidebarLinks } from "./types/types";
 import { outfit } from "@/core/fonts/outfit";
 import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/core/components/theme/theme-toggle";
 
-export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, tenantId }: { children: React.ReactNode, sidebarLinks: ISidebarLinks, navHeaderData: IHeaderData, tenantId?: string }) {
+export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, tenantId, currentOrg, isLoadingOrg }: { children: React.ReactNode, sidebarLinks: ISidebarLinks, navHeaderData: IHeaderData, tenantId?: string, currentOrg?: { id: string; name: string; logo?: string; plan?: string; memberCount?: number }, isLoadingOrg?: boolean }) {
 
     const pathname = usePathname();
     const userData = useUserData();
@@ -57,9 +58,11 @@ export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, t
                 userData={userData}
                 sidebarLinks={sidebarLinks}
                 tenantId={tenantId}
+                currentOrg={currentOrg}
+                isLoadingOrg={isLoadingOrg}
             />
             <SidebarInset>
-                <header className="flex border-b h-12 w-full top-0 fixed bg-background shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+                <header className="flex border-b h-12 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sticky top-0 bg-background z-10">
                     <div className="flex items-center gap-2 px-4">
                         <SidebarTrigger className="-ml-1" variant="secondary" />
                         <Separator
@@ -110,8 +113,11 @@ export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, t
                             </BreadcrumbList>
                         </Breadcrumb>
                     </div>
+                    <div className="px-4">
+                        <ThemeToggle />
+                    </div>
                 </header>
-                <div className="flex flex-1 flex-col gap-4  pt-10">{children}</div>
+                <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
             </SidebarInset>
         </SidebarProvider>
     );

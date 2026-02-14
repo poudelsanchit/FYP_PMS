@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
 
           if (!existingUser) {
             // New user - mark as unverified
-            await prisma.user.create({
+            const newUser = await prisma.user.create({
               data: {
                 email,
                 name: name || null,
@@ -45,6 +45,20 @@ export const authOptions: NextAuthOptions = {
               },
             });
             isNewUser = true;
+
+            // Create default organization for new user
+            const orgName = name ? `${name}'s ORG` : "My ORG";
+            await prisma.organization.create({
+              data: {
+                name: orgName,
+                members: {
+                  create: {
+                    userId: newUser.id,
+                    role: "ORG_ADMIN",
+                  },
+                },
+              },
+            });
           } else if (!existingUser.googleId) {
             // Existing user without Google ID - mark as unverified
             await prisma.user.update({
@@ -74,15 +88,25 @@ export const authOptions: NextAuthOptions = {
     // JWT callback: runs on login AND on every request
     async jwt({ token, user }) {
       if (user?.email) {
-        // On login: store stable info
-        token.userId = user.id;
-        token.email = user.email;
-      }
-
-      if (token.email) {
-        // On every request: fetch dynamic fields from DB
-        const dbUser = await prisma.user.findUnique({ where: { email: token.email } });
+        // On login: fetch user from DB to get the actual ID
+        const dbUser = await prisma.user.findUnique({ 
+          where: { email: user.email },
+          select: { id: true, email: true, isVerified: true }
+        });
+        
         if (dbUser) {
+          token.userId = dbUser.id;
+          token.email = dbUser.email;
+          token.isVerified = dbUser.isVerified;
+        }
+      } else if (token.email) {
+        // On every request: fetch dynamic fields from DB
+        const dbUser = await prisma.user.findUnique({ 
+          where: { email: token.email as string },
+          select: { id: true, isVerified: true }
+        });
+        if (dbUser) {
+          token.userId = dbUser.id;
           token.isVerified = dbUser.isVerified;
         }
       }

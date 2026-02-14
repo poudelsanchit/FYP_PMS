@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/core/providers/auth/auth-provider";
 import { Toaster } from "@/core/components/ui/sonner";
+import { ThemeProvider } from "@/core/providers/theme/theme-provider";
 
 const outfit = Outfit({
   weight: ["300", "400", "500", "700"],
@@ -26,10 +27,17 @@ export default function RootLayout({
       <body
         className={`${outfit.className} antialiased`}
       >
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

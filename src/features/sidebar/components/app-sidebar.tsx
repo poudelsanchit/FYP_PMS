@@ -13,6 +13,8 @@ import { IHeaderData, ISidebarLinks } from "../types/types";
 import { ProjectsListSkeleton } from "./projects-list-skeleton";
 import { Separator } from "@/core/components/ui/separator";
 import { SidebarHeaderComponent } from "./sidebar-header";
+import { OrganizationSwitcher } from "./organization-switcher";
+import { OrganizationHeaderSkeleton } from "./organization-header-skeleton";
 
 
 interface IUserData {
@@ -29,6 +31,14 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   userData: IUserData;
   sidebarLinks: ISidebarLinks;
   tenantId?: string;
+  currentOrg?: {
+    id: string;
+    name: string;
+    logo?: string;
+    plan?: string;
+    memberCount?: number;
+  };
+  isLoadingOrg?: boolean;
 }
 
 export function AppSidebar({
@@ -36,13 +46,21 @@ export function AppSidebar({
   userData,
   sidebarLinks,
   tenantId,
+  currentOrg,
+  isLoadingOrg,
   ...props
 }: AppSidebarProps) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarHeaderComponent team={headerData} />
+        {isLoadingOrg ? (
+          <OrganizationHeaderSkeleton />
+        ) : currentOrg ? (
+          <OrganizationSwitcher key={currentOrg.id} currentOrg={currentOrg} />
+        ) : (
+          <SidebarHeaderComponent team={headerData} />
+        )}
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={sidebarLinks.items} />
