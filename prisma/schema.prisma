@@ -13,6 +13,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum OrganizationRole {
+  ORG_ADMIN
+  ORG_MEMBER
+}
+
 model User {
   id         String  @id @default(cuid())
   email      String  @unique
@@ -21,8 +26,9 @@ model User {
   isVerified Boolean @default(false)
   googleId   String  @unique @map("google_id")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  organizationMembers OrganizationMember[]
 
   @@map("users")
 }
@@ -36,4 +42,28 @@ model OTP {
 
   @@unique([email, code])
   @@map("otps")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members OrganizationMember[]
+}
+
+model OrganizationMember {
+  id     String           @id @default(uuid())
+  userId String
+  role   OrganizationRole @default(ORG_MEMBER)
+
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  @@unique([userId, organizationId]) // prevent duplicate memberships
+  @@index([organizationId])
+  @@index([userId])
 }
