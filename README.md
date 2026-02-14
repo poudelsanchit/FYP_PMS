@@ -1,4 +1,5 @@
 - ✅ Implement Auth Login
 - ✅ Implement OTP Verification
-- ❌ [] Implement RBAC
 - ✅ Implement a default Organization Creation if a user is new (Sanchit's Org)
+- ❌ A Super Admin panel to view all Organizations and Manage Payments
+- ❌ Invite users to organization
