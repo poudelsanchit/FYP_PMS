@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -13,19 +7,13 @@ datasource db {
   provider = "postgresql"
 }
 
-enum OrganizationRole {
-  ORG_ADMIN
-  ORG_MEMBER
-}
-
 model User {
-  id         String  @id @default(cuid())
-  email      String  @unique
-  name       String?
-  avatar     String? // Google profile picture URL
-  isVerified Boolean @default(false)
-  googleId   String  @unique @map("google_id")
-
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String?
+  avatar              String?
+  isVerified          Boolean              @default(false)
+  googleId            String               @unique @map("google_id")
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
   organizationMembers OrganizationMember[]
@@ -45,25 +33,52 @@ model OTP {
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  members OrganizationMember[]
+  id          String                   @id @default(uuid())
+  name        String
+  isActive    Boolean                  @default(true)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  invitations OrganizationInvitation[]
+  members     OrganizationMember[]
 }
 
 model OrganizationMember {
-  id     String           @id @default(uuid())
-  userId String
-  role   OrganizationRole @default(ORG_MEMBER)
-
-  user           User         @relation(fields: [userId], references: [id])
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  id             String           @id @default(uuid())
+  userId         String
+  role           OrganizationRole @default(ORG_MEMBER)
   organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
 
-  @@unique([userId, organizationId]) // prevent duplicate memberships
+  @@unique([userId, organizationId])
   @@index([organizationId])
   @@index([userId])
+}
+
+model OrganizationInvitation {
+  id             String           @id @default(uuid())
+  email          String
+  organizationId String
+  role           OrganizationRole @default(ORG_MEMBER)
+  token          String           @unique @default(uuid())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([email, organizationId])
+  @@index([organizationId])
+  @@index([email])
+  @@index([token])
+}
+
+enum OrganizationRole {
+  ORG_ADMIN
+  ORG_MEMBER
+}
+
+enum ProjectRole {
+  PROJECT_LEAD
+  PROJECT_MEMBER
 }

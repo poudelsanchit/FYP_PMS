@@ -125,9 +125,12 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
                 <Settings className="size-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2 p-2">
+              <DropdownMenuItem 
+                onClick={() => router.push(`/app/${currentOrg.id}/members`)} 
+                className="gap-2 p-2"
+              >
                 <Users className="size-4" />
-                <span>Invite members</span>
+                <span>Members</span>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />

@@ -15,6 +15,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { SidebarHeaderComponent } from "./sidebar-header";
 import { OrganizationSwitcher } from "./organization-switcher";
 import { OrganizationHeaderSkeleton } from "./organization-header-skeleton";
+import ProjectsList from "@/features/projects/components/sidebar/ProjectsList";
 
 
 interface IUserData {
@@ -50,6 +51,16 @@ export function AppSidebar({
   isLoadingOrg,
   ...props
 }: AppSidebarProps) {
+  // Prepend tenantId to all sidebar link URLs
+  const sidebarLinksWithTenant = tenantId
+    ? {
+        ...sidebarLinks,
+        items: sidebarLinks.items.map((item) => ({
+          ...item,
+          url: `/app/${tenantId}${item.url}`,
+        })),
+      }
+    : sidebarLinks;
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -63,11 +74,12 @@ export function AppSidebar({
         )}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebarLinks.items} />
+        <NavMain items={sidebarLinksWithTenant.items} />
         <div className="px-4">
           <Separator />
         </div>
         <ProjectsListSkeleton />
+        <ProjectsList />
       </SidebarContent>
 
 
