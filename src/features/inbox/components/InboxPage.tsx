@@ -17,7 +17,7 @@ import {
   Inbox as InboxIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/core/lib/utils";
+import { cn } from "@/core/utils/utils";
 import { useOrganizationStore } from "@/core/stores/useOrganizationStore";
 
 interface Invitation {
@@ -84,10 +84,10 @@ export function InboxPage() {
 
       if (action === "accept") {
         toast.success(`Joined ${orgName} successfully!`);
-        
+
         // Refresh organizations in the store
         await fetchOrganizations();
-        
+
         // Navigate to the new organization
         setTimeout(() => {
           router.push(`/app/${orgId}`);
@@ -193,7 +193,7 @@ export function InboxPage() {
                   className={cn(
                     "w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors mb-1",
                     selectedInvitation?.id === invitation.id &&
-                      "bg-muted border border-border"
+                    "bg-muted border border-border"
                   )}
                 >
                   <div className="flex items-start gap-3">

@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/core
 import { Button } from "@/core/components/ui/button"
 import { Input } from "@/core/components/ui/input"
 import { Sheet, SheetDescription, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/core/components/ui/sheet"
-import { cn } from "@/core/lib/utils"
+import { cn } from "@/core/utils/utils"
 import { Skeleton } from "@/core/components/ui/skeleton"
 import { Separator } from "@/core/components/ui/separator"
 
