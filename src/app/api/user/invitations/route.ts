@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch all pending invitations for the user's email
+    console.log("--------User Email---------", session.user.email);
     const invitations = await prisma.organizationInvitation.findMany({
       where: {
         email: session.user.email,
@@ -27,13 +28,14 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: "desc" },
     });
+    console.log(invitations);
 
     return NextResponse.json({ invitations }, { status: 200 });
   } catch (error) {
     console.error("Error fetching user invitations:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

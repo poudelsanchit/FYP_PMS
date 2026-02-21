@@ -15,7 +15,7 @@ import { Separator } from "@/core/components/ui/separator";
 import { SidebarHeaderComponent } from "./sidebar-header";
 import { OrganizationSwitcher } from "./organization-switcher";
 import { OrganizationHeaderSkeleton } from "./organization-header-skeleton";
-import ProjectsList from "@/features/projects/components/sidebar/ProjectsList";
+import ProjectsList from "@/features/projects/components/ProjectsList";
 
 
 interface IUserData {
@@ -38,6 +38,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     logo?: string;
     plan?: string;
     memberCount?: number;
+    role?: "ORG_ADMIN" | "ORG_MEMBER";
   };
   isLoadingOrg?: boolean;
 }
@@ -54,12 +55,12 @@ export function AppSidebar({
   // Prepend tenantId to all sidebar link URLs
   const sidebarLinksWithTenant = tenantId
     ? {
-        ...sidebarLinks,
-        items: sidebarLinks.items.map((item) => ({
-          ...item,
-          url: `/app/${tenantId}${item.url}`,
-        })),
-      }
+      ...sidebarLinks,
+      items: sidebarLinks.items.map((item) => ({
+        ...item,
+        url: `/app/${tenantId}${item.url}`,
+      })),
+    }
     : sidebarLinks;
 
   return (
@@ -78,8 +79,10 @@ export function AppSidebar({
         <div className="px-4">
           <Separator />
         </div>
-        <ProjectsListSkeleton />
-        <ProjectsList />
+        {!tenantId && <ProjectsListSkeleton />}
+        {
+          tenantId && <ProjectsList orgId={tenantId} userRole={currentOrg?.role} />
+        }
       </SidebarContent>
 
 

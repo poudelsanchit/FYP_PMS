@@ -7,6 +7,7 @@ export interface CurrentOrganization {
   logo?: string;
   plan?: string;
   memberCount?: number;
+  role?: "ORG_ADMIN" | "ORG_MEMBER";
 }
 
 export function useCurrentOrganization(orgId?: string) {
