@@ -141,7 +141,7 @@ const Pricing = () => {
                         key={plan.name}
                         className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col ${plan.highlight
                             ? `bg-gradient-to-br ${plan.color} ${plan.borderColor} shadow-2xl shadow-violet-200 scale-105`
-                            : `bg-neutral-900 border shadow-sm hover:shadow-md`
+                            : `dark:bg-neutral-900 border shadow-sm hover:shadow-md`
                             }`}
                     >
                         {/* Badge */}
