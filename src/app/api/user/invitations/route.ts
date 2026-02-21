@@ -10,9 +10,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch all pending invitations for the user's email
-    console.log("--------User Email---------", session.user.email);
-    const invitations = await prisma.organizationInvitation.findMany({
+    const { searchParams } = new URL(req.url);
+    const orgId = searchParams.get("orgId") ?? undefined;
+
+    // Get the user
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Fetch all pending organization invitations for the user's email (always global)
+    const orgInvitations = await prisma.organizationInvitation.findMany({
       where: {
         email: session.user.email,
         acceptedAt: null,
@@ -28,9 +39,42 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: "desc" },
     });
-    console.log(invitations);
 
-    return NextResponse.json({ invitations }, { status: 200 });
+    // Fetch pending project invitations - filtered by orgId if provided
+    const projectInvitations = await prisma.projectInvitation.findMany({
+      where: {
+        userId: user.id,
+        acceptedAt: null,
+        expiresAt: { gte: new Date() },
+        ...(orgId && {
+          project: {
+            organizationId: orgId,
+          },
+        }),
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            color: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({
+      organizationInvitations: orgInvitations,
+      projectInvitations,
+    }, { status: 200 });
   } catch (error) {
     console.error("Error fetching user invitations:", error);
     return NextResponse.json(

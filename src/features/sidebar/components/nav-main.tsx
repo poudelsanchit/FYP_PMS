@@ -3,6 +3,8 @@
 import { type LucideIcon, ChevronRight } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
+import { Badge } from "@/core/components/ui/badge";
+import { useInboxCount } from "@/features/inbox/hooks/useInboxCount";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -24,10 +26,12 @@ interface NavItem {
   url: string;
   icon?: LucideIcon;
   items?: NavItem[];
+  badge?: number | string;
 }
 
 interface NavMainProps {
   items: NavItem[];
+  tenantId?: string;
 }
 
 function NavItemRenderer({
@@ -142,9 +146,10 @@ function NavItemRenderer({
   );
 }
 
-export function NavMain({ items }: NavMainProps) {
+export function NavMain({ items, tenantId }: NavMainProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { count: inboxCount } = useInboxCount(tenantId);
 
   return (
     <SidebarGroup>
@@ -154,6 +159,9 @@ export function NavMain({ items }: NavMainProps) {
           const isActive = pathname === item.url;
           const hasSubItems = item.items && item.items.length > 0;
           const isSubItemActive = hasSubItems && item.items?.some((subItem) => pathname.startsWith(subItem.url));
+          
+          // Add inbox count badge
+          const badge = item.title === "Inbox" && inboxCount > 0 ? inboxCount : item.badge;
 
           if (hasSubItems) {
             return (
@@ -174,6 +182,14 @@ export function NavMain({ items }: NavMainProps) {
                     >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
+                      {badge && (
+                        <Badge 
+                          variant="default" 
+                          className="ml-auto h-5 min-w-5 px-1.5 text-xs"
+                        >
+                          {badge}
+                        </Badge>
+                      )}
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
@@ -210,6 +226,14 @@ export function NavMain({ items }: NavMainProps) {
               >
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
+                {badge && (
+                  <Badge 
+                    variant="default" 
+                    className="ml-auto h-5 min-w-5 px-1.5 text-xs"
+                  >
+                    {badge}
+                  </Badge>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           );

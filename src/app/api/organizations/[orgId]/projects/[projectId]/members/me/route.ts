@@ -1,7 +1,5 @@
 /**
- * GET    /api/organizations/[orgId]/projects/[projectId]/members         – list members
- * DELETE /api/organizations/[orgId]/projects/[projectId]/members/[memberId] – remove member
- * PATCH  /api/organizations/[orgId]/projects/[projectId]/members/[memberId] – update role
+ * GET /api/organizations/[orgId]/projects/[projectId]/members/me - Get current user's project role
  */
 
 import { NextRequest } from "next/server";
@@ -28,19 +26,13 @@ export async function GET(req: NextRequest, { params }: Context) {
   });
   if (!project) return err("Project not found", 404);
 
-  // Check if user is a project member (either lead or regular member)
   const projectMember = await prisma.projectMember.findUnique({
     where: { projectId_userId: { projectId, userId } },
   });
-  if (!projectMember) return err("Forbidden: not a project member", 403);
 
-  const members = await prisma.projectMember.findMany({
-    where: { projectId },
-    include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
-    },
-    orderBy: { joinedAt: "asc" },
-  });
+  if (!projectMember) {
+    return ok({ role: null, isMember: false });
+  }
 
-  return ok(members);
+  return ok({ role: projectMember.role, isMember: true });
 }

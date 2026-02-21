@@ -75,7 +75,7 @@ export function AppSidebar({
         )}
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebarLinksWithTenant.items} />
+        <NavMain items={sidebarLinksWithTenant.items} tenantId={tenantId} />
         <div className="px-4">
           <Separator />
         </div>

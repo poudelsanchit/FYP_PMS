@@ -17,6 +17,7 @@ interface UseProjectsReturn {
   isLoading: boolean;
   error: string | null;
   addProject: (project: Project) => void;
+  removeProject: (projectId: string) => void;
   refetch: () => void;
 }
 
@@ -53,5 +54,16 @@ export function useProjects(orgId: string): UseProjectsReturn {
     setProjects((prev) => [project, ...prev]);
   }, []);
 
-  return { projects, isLoading, error, addProject, refetch: fetchProjects };
+  // inside useProjects
+  const removeProject = (projectId: string) => {
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+  };
+  return {
+    projects,
+    isLoading,
+    error,
+    addProject,
+    removeProject,
+    refetch: fetchProjects,
+  };
 }

@@ -36,8 +36,16 @@ export async function GET(req: NextRequest, { params }: Context) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? 20)));
   const skip = (page - 1) * limit;
 
+  // Build where clause based on user's organization role
   const where = {
     organizationId: orgId,
+    // ORG_MEMBER can only see projects they are a member of
+    ...(membership.role === "ORG_MEMBER" && {
+      members: {
+        some: { userId },
+      },
+    }),
+    // ORG_ADMIN sees all projects (no additional filter)
     ...(search && {
       OR: [
         { name: { contains: search, mode: "insensitive" as const } },

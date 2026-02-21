@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/core/components/ui/button";
 import { Badge } from "@/core/components/ui/badge";
@@ -15,12 +15,14 @@ import {
   Crown,
   User as UserIcon,
   Inbox as InboxIcon,
+  FolderKanban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/core/utils/utils";
 import { useOrganizationStore } from "@/core/stores/useOrganizationStore";
+import { triggerInboxRefresh } from "../hooks/useInboxRefresh";
 
-interface Invitation {
+interface OrganizationInvitation {
   id: string;
   email: string;
   role: string;
@@ -30,51 +32,105 @@ interface Invitation {
     id: string;
     name: string;
   };
+  type: 'organization';
 }
 
-export function InboxPage() {
+interface ProjectInvitation {
+  id: string;
+  userId: string;
+  role: string;
+  createdAt: string;
+  expiresAt: string;
+  project: {
+    id: string;
+    name: string;
+    key: string;
+    color: string;
+    organization: {
+      id: string;
+      name: string;
+    };
+  };
+  type: 'project';
+}
+
+type Invitation = OrganizationInvitation | ProjectInvitation;
+
+export function InboxPage({ tenantId }: { tenantId: string }) {
   const router = useRouter();
   const { fetchOrganizations } = useOrganizationStore();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [selectedInvitation, setSelectedInvitation] =
     useState<Invitation | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = React.useCallback(async (showLoading = false) => {
     try {
-      setIsLoading(true);
-      const response = await fetch("/api/user/invitations");
+      if (showLoading) {
+        setIsInitialLoading(true);
+      }
+      
+      const url = new URL('/api/user/invitations', window.location.origin);
+      url.searchParams.set('orgId', tenantId);
+      
+      const response = await fetch(url.toString());
       if (response.ok) {
         const data = await response.json();
-        setInvitations(data.invitations || []);
-        if (data.invitations?.length > 0 && !selectedInvitation) {
-          setSelectedInvitation(data.invitations[0]);
+        const orgInvites: OrganizationInvitation[] = (data.organizationInvitations || []).map((inv: any) => ({
+          ...inv,
+          type: 'organization' as const,
+        }));
+        const projInvites: ProjectInvitation[] = (data.projectInvitations || []).map((inv: any) => ({
+          ...inv,
+          type: 'project' as const,
+        }));
+        
+        const allInvites = [...orgInvites, ...projInvites].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
+        setInvitations(allInvites);
+        
+        // Only set selected invitation on initial load or if current selection is gone
+        if (allInvites.length > 0) {
+          setSelectedInvitation(prev => {
+            // If no previous selection, select first
+            if (!prev) return allInvites[0];
+            // If previous selection still exists, keep it
+            const stillExists = allInvites.find(inv => inv.id === prev.id);
+            return stillExists || allInvites[0];
+          });
+        } else {
+          setSelectedInvitation(null);
         }
       }
     } catch (error) {
       toast.error("Failed to load invitations");
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsInitialLoading(false);
+      }
     }
-  };
+  }, [tenantId]);
 
   useEffect(() => {
-    fetchInvitations();
-  }, []);
+    fetchInvitations(true);
+  }, [fetchInvitations]);
 
   const handleInvitation = async (
-    invitationId: string,
-    action: "accept" | "reject",
-    orgId: string,
-    orgName: string
+    invitation: Invitation,
+    action: "accept" | "reject"
   ) => {
     try {
-      setProcessingId(invitationId);
-      const response = await fetch(`/api/user/invitations/${invitationId}`, {
+      setProcessingId(invitation.id);
+      const response = await fetch(`/api/user/invitations/${invitation.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ 
+          action,
+          type: invitation.type,
+        }),
       });
 
       if (!response.ok) {
@@ -82,28 +138,45 @@ export function InboxPage() {
         throw new Error(error.error || "Failed to process invitation");
       }
 
+      const data = await response.json();
+
       if (action === "accept") {
-        toast.success(`Joined ${orgName} successfully!`);
+        if (invitation.type === 'organization') {
+          toast.success(`Joined ${invitation.organization.name} successfully!`);
+          
+          // Refresh organizations in the store
+          await fetchOrganizations();
 
-        // Refresh organizations in the store
-        await fetchOrganizations();
+          // Navigate to the new organization
+          setTimeout(() => {
+            router.push(`/app/${invitation.organization.id}`);
+          }, 500);
+        } else {
+          toast.success(`Joined project ${invitation.project.name} successfully!`);
+          
+          // Refresh organizations in the store
+          await fetchOrganizations();
 
-        // Navigate to the new organization
-        setTimeout(() => {
-          router.push(`/app/${orgId}`);
-        }, 500);
+          // Navigate to the organization
+          setTimeout(() => {
+            router.push(`/app/${invitation.project.organization.id}`);
+          }, 500);
+        }
       } else {
         toast.success("Invitation declined");
       }
 
       // Remove the invitation from the list
       setInvitations((prev) => {
-        const filtered = prev.filter((inv) => inv.id !== invitationId);
-        if (selectedInvitation?.id === invitationId) {
+        const filtered = prev.filter((inv) => inv.id !== invitation.id);
+        if (selectedInvitation?.id === invitation.id) {
           setSelectedInvitation(filtered[0] || null);
         }
         return filtered;
       });
+
+      // Trigger refresh for sidebar count
+      triggerInboxRefresh();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to process invitation"
@@ -161,7 +234,7 @@ export function InboxPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
+          {isInitialLoading ? (
             <div className="p-2 space-y-1">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="p-3 space-y-2">
@@ -191,39 +264,68 @@ export function InboxPage() {
                   key={invitation.id}
                   onClick={() => setSelectedInvitation(invitation)}
                   className={cn(
-                    "w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors mb-1",
-                    selectedInvitation?.id === invitation.id &&
-                    "bg-muted border border-border"
+                    "w-full text-left p-3 rounded-lg transition-all duration-200 mb-1",
+                    "hover:bg-muted/50",
+                    selectedInvitation?.id === invitation.id
+                      ? "bg-muted border border-border shadow-sm"
+                      : "hover:shadow-sm"
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <Building2 className="w-4 h-4 text-primary" />
+                    <div 
+                      className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: invitation.type === 'project' 
+                          ? `${invitation.project.color}20` 
+                          : 'hsl(var(--primary) / 0.1)'
+                      }}
+                    >
+                      {invitation.type === 'project' ? (
+                        <FolderKanban 
+                          className="w-4 h-4" 
+                          style={{ color: invitation.project.color }}
+                        />
+                      ) : (
+                        <Building2 className="w-4 h-4 text-primary" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="font-medium text-sm truncate">
-                          {invitation.organization.name}
+                          {invitation.type === 'project' 
+                            ? invitation.project.name 
+                            : invitation.organization.name}
                         </p>
                         <span className="text-xs text-muted-foreground shrink-0">
                           {formatDate(invitation.createdAt)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2">
-                        Organization invitation as{" "}
-                        {invitation.role === "ORG_ADMIN" ? "Admin" : "Member"}
+                        {invitation.type === 'project' 
+                          ? `Project invitation as ${invitation.role === "PROJECT_LEAD" ? "Lead" : "Member"}`
+                          : `Organization invitation as ${invitation.role === "ORG_ADMIN" ? "Admin" : "Member"}`
+                        }
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <Badge
                           variant={
-                            invitation.role === "ORG_ADMIN"
+                            (invitation.type === 'organization' && invitation.role === "ORG_ADMIN") ||
+                            (invitation.type === 'project' && invitation.role === "PROJECT_LEAD")
                               ? "default"
                               : "secondary"
                           }
                           className="text-xs h-5"
                         >
-                          {invitation.role === "ORG_ADMIN" ? "Admin" : "Member"}
+                          {invitation.type === 'project'
+                            ? (invitation.role === "PROJECT_LEAD" ? "Lead" : "Member")
+                            : (invitation.role === "ORG_ADMIN" ? "Admin" : "Member")
+                          }
                         </Badge>
+                        {invitation.type === 'project' && (
+                          <span className="text-xs text-muted-foreground">
+                            {invitation.project.organization.name}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -237,7 +339,7 @@ export function InboxPage() {
       {/* Right Panel - Invitation Details */}
       <div className="flex-1 flex flex-col">
         {!selectedInvitation ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-200">
             <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
               <Mail className="w-10 h-10 text-muted-foreground" />
             </div>
@@ -247,17 +349,33 @@ export function InboxPage() {
             </p>
           </div>
         ) : (
-          <>
+          <div key={selectedInvitation.id} className="flex-1 flex flex-col animate-in fade-in duration-200">
             {/* Header */}
             <div className="p-6 border-b">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-primary" />
+                  <div 
+                    className="h-12 w-12 rounded-lg flex items-center justify-center"
+                    style={{
+                      backgroundColor: selectedInvitation.type === 'project' 
+                        ? `${selectedInvitation.project.color}20` 
+                        : 'hsl(var(--primary) / 0.1)'
+                    }}
+                  >
+                    {selectedInvitation.type === 'project' ? (
+                      <FolderKanban 
+                        className="w-6 h-6" 
+                        style={{ color: selectedInvitation.project.color }}
+                      />
+                    ) : (
+                      <Building2 className="w-6 h-6 text-primary" />
+                    )}
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold">
-                      Organization Invitation
+                      {selectedInvitation.type === 'project' 
+                        ? 'Project Invitation' 
+                        : 'Organization Invitation'}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {formatFullDate(selectedInvitation.createdAt)}
@@ -266,32 +384,30 @@ export function InboxPage() {
                 </div>
                 <Badge
                   variant={
-                    selectedInvitation.role === "ORG_ADMIN"
+                    (selectedInvitation.type === 'organization' && selectedInvitation.role === "ORG_ADMIN") ||
+                    (selectedInvitation.type === 'project' && selectedInvitation.role === "PROJECT_LEAD")
                       ? "default"
                       : "secondary"
                   }
                   className="flex items-center gap-1"
                 >
-                  {selectedInvitation.role === "ORG_ADMIN" ? (
+                  {((selectedInvitation.type === 'organization' && selectedInvitation.role === "ORG_ADMIN") ||
+                    (selectedInvitation.type === 'project' && selectedInvitation.role === "PROJECT_LEAD")) ? (
                     <Crown className="w-3 h-3" />
                   ) : (
                     <UserIcon className="w-3 h-3" />
                   )}
-                  {selectedInvitation.role === "ORG_ADMIN" ? "Admin" : "Member"}
+                  {selectedInvitation.type === 'project'
+                    ? (selectedInvitation.role === "PROJECT_LEAD" ? "Lead" : "Member")
+                    : (selectedInvitation.role === "ORG_ADMIN" ? "Admin" : "Member")
+                  }
                 </Badge>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={() =>
-                    handleInvitation(
-                      selectedInvitation.id,
-                      "accept",
-                      selectedInvitation.organization.id,
-                      selectedInvitation.organization.name
-                    )
-                  }
+                  onClick={() => handleInvitation(selectedInvitation, "accept")}
                   disabled={processingId === selectedInvitation.id}
                   className="gap-2"
                 >
@@ -300,14 +416,7 @@ export function InboxPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() =>
-                    handleInvitation(
-                      selectedInvitation.id,
-                      "reject",
-                      selectedInvitation.organization.id,
-                      selectedInvitation.organization.name
-                    )
-                  }
+                  onClick={() => handleInvitation(selectedInvitation, "reject")}
                   disabled={processingId === selectedInvitation.id}
                   className="gap-2"
                 >
@@ -323,35 +432,61 @@ export function InboxPage() {
                 {/* Main Message */}
                 <div className="bg-muted/50 rounded-lg p-6 border">
                   <h3 className="text-lg font-semibold mb-3">
-                    You've been invited to join{" "}
-                    {selectedInvitation.organization.name}
+                    {selectedInvitation.type === 'project' 
+                      ? `You've been invited to join ${selectedInvitation.project.name}`
+                      : `You've been invited to join ${selectedInvitation.organization.name}`
+                    }
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You have been invited to join this organization as{" "}
-                    {selectedInvitation.role === "ORG_ADMIN"
-                      ? "an Admin"
-                      : "a Member"}
-                    . Accepting this invitation will give you access to the
-                    organization's projects, boards, and resources.
+                    {selectedInvitation.type === 'project' 
+                      ? `You have been invited to join this project as ${
+                          selectedInvitation.role === "PROJECT_LEAD" ? "a Lead" : "a Member"
+                        }. Accepting this invitation will give you access to the project's tasks, boards, and resources.`
+                      : `You have been invited to join this organization as ${
+                          selectedInvitation.role === "ORG_ADMIN" ? "an Admin" : "a Member"
+                        }. Accepting this invitation will give you access to the organization's projects, boards, and resources.`
+                    }
                   </p>
                   <Separator className="my-4" />
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Building2 className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        Organization:
-                      </span>
-                      <span className="font-medium">
-                        {selectedInvitation.organization.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Sent to:</span>
-                      <span className="font-medium">
-                        {selectedInvitation.email}
-                      </span>
-                    </div>
+                    {selectedInvitation.type === 'project' ? (
+                      <>
+                        <div className="flex items-center gap-3 text-sm">
+                          <FolderKanban className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Project:</span>
+                          <span className="font-medium">
+                            {selectedInvitation.project.name}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {selectedInvitation.project.key}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <Building2 className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Organization:</span>
+                          <span className="font-medium">
+                            {selectedInvitation.project.organization.name}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3 text-sm">
+                          <Building2 className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Organization:</span>
+                          <span className="font-medium">
+                            {selectedInvitation.organization.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Sent to:</span>
+                          <span className="font-medium">
+                            {selectedInvitation.email}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-center gap-3 text-sm">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Expires:</span>
@@ -365,10 +500,11 @@ export function InboxPage() {
                 {/* Role Information */}
                 <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-6 border border-blue-200 dark:border-blue-900">
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    {selectedInvitation.role === "ORG_ADMIN" ? (
+                    {((selectedInvitation.type === 'organization' && selectedInvitation.role === "ORG_ADMIN") ||
+                      (selectedInvitation.type === 'project' && selectedInvitation.role === "PROJECT_LEAD")) ? (
                       <>
                         <Crown className="w-4 h-4 text-blue-600" />
-                        Admin Role
+                        {selectedInvitation.type === 'project' ? 'Lead Role' : 'Admin Role'}
                       </>
                     ) : (
                       <>
@@ -378,14 +514,19 @@ export function InboxPage() {
                     )}
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedInvitation.role === "ORG_ADMIN"
-                      ? "As an Admin, you'll have full access to manage the organization, invite members, create projects, and configure settings."
-                      : "As a Member, you'll have access to view and collaborate on projects within the organization."}
+                    {selectedInvitation.type === 'project' 
+                      ? (selectedInvitation.role === "PROJECT_LEAD"
+                          ? "As a Lead, you'll have full access to manage the project, invite members, and configure project settings."
+                          : "As a Member, you'll have access to view and collaborate on tasks within the project.")
+                      : (selectedInvitation.role === "ORG_ADMIN"
+                          ? "As an Admin, you'll have full access to manage the organization, invite members, create projects, and configure settings."
+                          : "As a Member, you'll have access to view and collaborate on projects within the organization.")
+                    }
                   </p>
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
