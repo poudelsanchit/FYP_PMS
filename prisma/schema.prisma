@@ -17,6 +17,17 @@ enum ProjectRole {
   PROJECT_MEMBER
 }
 
+// Project Management Enums
+enum BoardType {
+  KANBAN
+}
+
+enum BoardRole {
+  BOARD_LEAD
+  BOARD_MEMBER
+  BOARD_VIEWER
+}
+
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -30,6 +41,8 @@ model User {
   projects            Project[]
   projectMembers      ProjectMember[]
   projectInvitations  ProjectInvitation[]
+  boardMembers        BoardMember[]
+  issueAssignees      IssueAssignee[]
 
   @@map("users")
 }
@@ -54,6 +67,7 @@ model Organization {
   invitations OrganizationInvitation[]
   members     OrganizationMember[]
   projects    Project[]
+  boards      Board[]
 }
 
 model OrganizationMember {
@@ -98,10 +112,14 @@ model Project {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy    User                @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  members      ProjectMember[]
-  invitations  ProjectInvitation[]
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy         User                @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  members           ProjectMember[]
+  invitations       ProjectInvitation[]
+  boards            Board[]
+  issues            Issue[]
+  projectLabels     ProjectLabel[]
+  projectPriorities ProjectPriority[]
 }
 
 model ProjectMember {
@@ -138,4 +156,153 @@ model ProjectInvitation {
   @@index([projectId])
   @@index([userId])
   @@index([token])
+}
+
+model Board {
+  id             String    @id @default(uuid())
+  projectId      String
+  organizationId String // Denormalized for query efficiency
+  name           String
+  type           BoardType @default(KANBAN)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  columns      Column[]
+  labels       Label[]
+  priorities   Priority[]
+  members      BoardMember[]
+
+  @@index([projectId])
+  @@index([organizationId])
+}
+
+model BoardMember {
+  id       String    @id @default(uuid())
+  boardId  String
+  userId   String
+  role     BoardRole
+  joinedAt DateTime  @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
+}
+
+model Column {
+  id        String   @id @default(uuid())
+  boardId   String
+  name      String
+  order     Int // Unique within board for ordering
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  issues Issue[]
+
+  @@unique([boardId, order])
+  @@index([boardId])
+}
+
+model Issue {
+  id          String   @id @default(uuid())
+  projectId   String
+  columnId    String
+  title       String
+  description String
+  labelId     String?
+  priorityId  String?
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  column    Column          @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  label     Label?          @relation(fields: [labelId], references: [id], onDelete: SetNull)
+  priority  Priority?       @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+  assignees IssueAssignee[]
+
+  @@index([projectId])
+  @@index([columnId])
+  @@index([labelId])
+  @@index([priorityId])
+}
+
+model IssueAssignee {
+  id         String   @id @default(uuid())
+  issueId    String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, userId])
+  @@index([issueId])
+  @@index([userId])
+}
+
+model Label {
+  id        String   @id @default(uuid())
+  boardId   String
+  name      String // Unique within board
+  color     String? // Hex color code
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  issues Issue[]
+
+  @@unique([boardId, name])
+  @@index([boardId])
+}
+
+model Priority {
+  id        String   @id @default(uuid())
+  boardId   String
+  name      String // Unique within board
+  order     Int // For sorting
+  color     String? // Hex color code
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  issues Issue[]
+
+  @@unique([boardId, name])
+  @@index([boardId])
+}
+
+// Project-level Labels and Priorities
+model ProjectLabel {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String // Unique within project
+  color     String // Hex color code (required for project labels)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model ProjectPriority {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String // Unique within project
+  order     Int // For sorting
+  color     String // Hex color code (required for project priorities)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
 }
