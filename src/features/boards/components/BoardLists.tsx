@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Loader2, AlertCircle, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Loader2, AlertCircle, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
 import {
     SidebarMenuSubItem,
     SidebarMenuSubButton,
@@ -12,11 +12,13 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/core/components/ui/dropdown-menu'
 import { useBoards } from '../hooks/useBoards'
 import type { Board } from '../hooks/useBoards'
 import { DeleteBoardDialog } from './DeleteBoard'
+import { RenameBoardDialog } from './RenameBoardDialog'
 
 interface BoardsListProps {
     orgId: string
@@ -33,9 +35,11 @@ export function BoardsList({
     canCreate,
     onCreateClick,
 }: BoardsListProps) {
-    const { boards, isLoading, error, refetch, removeBoard } = useBoards(orgId, projectId)
+    const { boards, isLoading, error, refetch, addBoard, removeBoard, renameBoard } =
+        useBoards(orgId, projectId)
 
     const [deleteTarget, setDeleteTarget] = useState<Board | null>(null)
+    const [renameTarget, setRenameTarget] = useState<Board | null>(null)
 
     if (isLoading) {
         return (
@@ -96,6 +100,14 @@ export function BoardsList({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start" className="w-40">
                                 <DropdownMenuItem
+                                    className="gap-2 text-xs cursor-pointer"
+                                    onSelect={() => setRenameTarget(board)}
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Rename board
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
                                     className="gap-2 text-xs text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                                     onSelect={() => setDeleteTarget(board)}
                                 >
@@ -117,6 +129,18 @@ export function BoardsList({
                     boardId={deleteTarget.id}
                     boardName={deleteTarget.name}
                     onDeleted={removeBoard}
+                />
+            )}
+
+            {renameTarget && (
+                <RenameBoardDialog
+                    open={!!renameTarget}
+                    onOpenChange={(open) => { if (!open) setRenameTarget(null) }}
+                    orgId={orgId}
+                    projectId={projectId}
+                    boardId={renameTarget.id}
+                    currentName={renameTarget.name}
+                    onRenamed={renameBoard}
                 />
             )}
         </>
