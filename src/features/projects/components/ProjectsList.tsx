@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import {
     Plus, Loader2, AlertCircle, FolderKanban,
     MoreHorizontal, Users, Trash2, Settings, ChevronRight
@@ -12,7 +11,6 @@ import {
     SidebarMenu,
     SidebarMenuItem,
     SidebarMenuButton,
-    SidebarMenuAction,
     SidebarMenuSub,
 } from '@/core/components/ui/sidebar'
 import {
@@ -30,7 +28,10 @@ import {
 import { CreateProject } from './CreateProject'
 import DeleteProject from './DeleteProject'
 import ProjectMembersDialog from './ProjectMembersDialog'
+import { CreateBoard } from '@/features/boards/components/CreateBoard'
 import { useProjects } from '../hooks/useProjects'
+import { useBoards } from '@/features/boards/hooks/useBoards'
+import { BoardsList } from '@/features/boards/components/BoardLists'
 
 interface ProjectsListProps {
     orgId: string
@@ -39,6 +40,148 @@ interface ProjectsListProps {
 
 type ProjectTarget = { id: string; name: string; userIsLead: boolean } | null
 type ProjectMembership = Record<string, { isMember: boolean; role?: 'PROJECT_LEAD' | 'PROJECT_MEMBER' }>
+
+interface ProjectRowProps {
+    orgId: string
+    project: { id: string; name: string; color: string | null }
+    isOpen: boolean
+    onToggle: () => void
+    canCreateBoard: boolean
+    membership: { isMember: boolean; role?: 'PROJECT_LEAD' | 'PROJECT_MEMBER' } | undefined
+    isAdmin: boolean
+    onMembersClick: () => void
+    onDeleteClick: () => void
+}
+
+function ProjectRow({
+    orgId,
+    project,
+    isOpen,
+    onToggle,
+    canCreateBoard,
+    membership,
+    isAdmin,
+    onMembersClick,
+    onDeleteClick,
+}: ProjectRowProps) {
+    const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false)
+    const { addBoard } = useBoards(orgId, project.id)
+    const projectColor = project.color ?? '#3b82f6'
+
+    return (
+        <Collapsible open={isOpen} onOpenChange={onToggle}>
+            <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                        asChild
+                        className="group/item data-[state=open]:bg-accent/50"
+                    >
+
+                        <div className="flex items-center justify-around w-full  cursor-pointer">
+                            <div className='flex items-center gap-1.5 '>
+                                <ChevronRight
+                                    className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''
+                                        }`}
+                                />
+
+                                <span
+                                    className="h-2 w-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: projectColor }}
+                                />
+
+                                <span className="flex-1 truncate text-sm">{project.name}</span>
+                            </div>
+                            <div
+                                className="flex ml-auto items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {canCreateBoard && (
+                                    <span
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setIsCreateBoardOpen(true)}
+                                        onKeyDown={(e) => e.key === 'Enter' && setIsCreateBoardOpen(true)}
+                                        className="flex items-center justify-center h-5 w-5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                        aria-label="Add board"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" />
+                                    </span>
+                                )}
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
+                                            className="flex items-center justify-center h-5 w-5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                            aria-label="Project options"
+                                        >
+                                            <MoreHorizontal className="h-3.5 w-3.5" />
+                                        </span>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent side="right" align="start" className="w-48">
+                                        {membership?.isMember && (
+                                            <DropdownMenuItem
+                                                onSelect={onMembersClick}
+                                                className="gap-2 cursor-pointer"
+                                            >
+                                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span>Members</span>
+                                            </DropdownMenuItem>
+                                        )}
+                                        {isAdmin && (
+                                            <>
+                                                <DropdownMenuItem
+                                                    className="gap-2 cursor-pointer"
+                                                    onSelect={() => { /* settings */ }}
+                                                >
+                                                    <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+                                                    <span>Settings</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                                                    onSelect={onDeleteClick}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    <span>Delete project</span>
+                                                </DropdownMenuItem>
+                                            </>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                        <BoardsList
+                            orgId={orgId}
+                            projectId={project.id}
+                            projectColor={projectColor}
+                            canCreate={canCreateBoard}
+                            onCreateClick={() => setIsCreateBoardOpen(true)}
+                        />
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+            </SidebarMenuItem>
+
+            <CreateBoard
+                open={isCreateBoardOpen}
+                onOpenChange={setIsCreateBoardOpen}
+                orgId={orgId}
+                projectId={project.id}
+                projectName={project.name}
+                onSuccess={(board) => {
+                    addBoard(board)
+                    setIsCreateBoardOpen(false)
+                }}
+            />
+        </Collapsible>
+    )
+}
 
 const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -49,12 +192,15 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
     const isAdmin = userRole === 'ORG_ADMIN'
 
     const [projectMemberships, setProjectMemberships] = useState<ProjectMembership>({})
+
     useEffect(() => {
         const checkProjectMemberships = async () => {
-            const memberships: Record<string, { isMember: boolean; role?: 'PROJECT_LEAD' | 'PROJECT_MEMBER' }> = {}
+            const memberships: ProjectMembership = {}
             for (const project of projects) {
                 try {
-                    const res = await fetch(`/api/organizations/${orgId}/projects/${project.id}/members/me`)
+                    const res = await fetch(
+                        `/api/organizations/${orgId}/projects/${project.id}/members/me`
+                    )
                     if (res.ok) {
                         const data = await res.json()
                         memberships[project.id] = {
@@ -70,10 +216,6 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
         }
         if (projects.length > 0) checkProjectMemberships()
     }, [projects, orgId])
-
-    const toggleProject = (projectId: string) => {
-        setOpenProjects((prev) => ({ ...prev, [projectId]: !prev[projectId] }))
-    }
 
     return (
         <SidebarGroup>
@@ -121,101 +263,40 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
                     </div>
                 ) : (
                     projects.map((project) => {
-                        const isOpen = openProjects[project.id] ?? false
+                        const membership = projectMemberships[project.id]
+                        const isProjectLead = membership?.role === 'PROJECT_LEAD'
+                        const canCreateBoard = isAdmin || isProjectLead
 
                         return (
-                            <Collapsible
+                            <ProjectRow
                                 key={project.id}
-                                open={isOpen}
-                                onOpenChange={() => toggleProject(project.id)}
-                            >
-                                <SidebarMenuItem>
-                                    <div className="flex items-center w-full group/item">
-                                        {/* Chevron toggle */}
-                                        <CollapsibleTrigger asChild>
-
-                                            {/* Main link */}
-                                            <SidebarMenuButton asChild className="flex-1 min-w-0 pl-0">
-                                                <div
-                                                    className="flex items-center cursor-pointer"
-                                                >
-                                                    <button className="pl-1 shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-                                                        <ChevronRight
-                                                            className={`h-3.5 w-3.5 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                                                        />
-                                                    </button>
-
-                                                    <span
-                                                        className="h-2 w-2 rounded-full shrink-0"
-                                                        style={{ backgroundColor: project.color }}
-                                                    />
-                                                    <span className="truncate">{project.name}</span>
-                                                    {/* <span className="ml-auto font-mono text-[10px] text-muted-foreground shrink-0 tabular-nums">
-                                                        {project.key}
-                                                    </span> */}
-                                                </div>
-                                            </SidebarMenuButton>
-                                        </CollapsibleTrigger>
-
-                                        {/* More actions */}
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <SidebarMenuAction showOnHover>
-                                                    <MoreHorizontal className="h-4 w-4 cursor-pointer" />
-                                                    <span className="sr-only">Project options</span>
-                                                </SidebarMenuAction>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent side="right" align="start" className="w-48">
-                                                {projectMemberships[project.id]?.isMember && (
-                                                    <DropdownMenuItem
-                                                        onSelect={() => setMembersTarget({
-                                                            id: project.id,
-                                                            name: project.name,
-                                                            userIsLead: projectMemberships[project.id]?.role === 'PROJECT_LEAD',
-                                                        })}
-                                                        className="gap-2 cursor-pointer"
-                                                    >
-                                                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        <span>Members</span>
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {isAdmin && (
-                                                    <>
-                                                        <DropdownMenuItem
-                                                            className="gap-2 cursor-pointer"
-                                                            onSelect={() => { /* settings handler */ }}
-                                                        >
-                                                            <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-                                                            <span>Settings</span>
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                            onSelect={() => setDeleteTarget({
-                                                                id: project.id,
-                                                                name: project.name,
-                                                                userIsLead: false,
-                                                            })}
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                            <span>Delete project</span>
-                                                        </DropdownMenuItem>
-                                                    </>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-
-                                    {/* Collapsible content — boards will go here later */}
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            <p className="px-2 py-1.5 text-[11px] text-muted-foreground/50 italic">
-                                                No boards yet
-                                            </p>
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
+                                orgId={orgId}
+                                project={project}
+                                isOpen={openProjects[project.id] ?? false}
+                                onToggle={() =>
+                                    setOpenProjects((prev) => ({
+                                        ...prev,
+                                        [project.id]: !prev[project.id],
+                                    }))
+                                }
+                                canCreateBoard={canCreateBoard}
+                                membership={membership}
+                                isAdmin={isAdmin}
+                                onMembersClick={() =>
+                                    setMembersTarget({
+                                        id: project.id,
+                                        name: project.name,
+                                        userIsLead: isProjectLead,
+                                    })
+                                }
+                                onDeleteClick={() =>
+                                    setDeleteTarget({
+                                        id: project.id,
+                                        name: project.name,
+                                        userIsLead: false,
+                                    })
+                                }
+                            />
                         )
                     })
                 )}
@@ -244,7 +325,9 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
                 orgId={orgId}
                 project={membersTarget}
                 isAdmin={isAdmin}
-                userProjectRole={membersTarget ? projectMemberships[membersTarget.id]?.role : undefined}
+                userProjectRole={
+                    membersTarget ? projectMemberships[membersTarget.id]?.role : undefined
+                }
             />
         </SidebarGroup>
     )
