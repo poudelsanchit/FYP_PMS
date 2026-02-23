@@ -29,9 +29,10 @@ import { CreateProject } from './CreateProject'
 import DeleteProject from './DeleteProject'
 import ProjectMembersDialog from './ProjectMembersDialog'
 import { CreateBoard } from '@/features/boards/components/CreateBoard'
-import { useProjects } from '../hooks/useProjects'
-import { useBoards } from '@/features/boards/hooks/useBoards'
+import { useProjectsWithBoards, type ProjectWithBoards } from '../hooks/useProjectsWithBoards '
+import type { Board } from '@/features/boards/hooks/useBoards'
 import { BoardsList } from '@/features/boards/components/BoardLists'
+import { ProjectSettingsDialog } from '../settings/components/ProjectSettings'
 
 interface ProjectsListProps {
     orgId: string
@@ -43,14 +44,18 @@ type ProjectMembership = Record<string, { isMember: boolean; role?: 'PROJECT_LEA
 
 interface ProjectRowProps {
     orgId: string
-    project: { id: string; name: string; color: string | null }
+    project: ProjectWithBoards
     isOpen: boolean
     onToggle: () => void
     canCreateBoard: boolean
     membership: { isMember: boolean; role?: 'PROJECT_LEAD' | 'PROJECT_MEMBER' } | undefined
     isAdmin: boolean
     onMembersClick: () => void
+    onSettingsClick: () => void  // ← added
     onDeleteClick: () => void
+    onBoardAdded: (board: Board) => void
+    onBoardRemoved: (boardId: string) => void
+    onBoardRenamed: (boardId: string, newName: string) => void
 }
 
 function ProjectRow({
@@ -62,10 +67,13 @@ function ProjectRow({
     membership,
     isAdmin,
     onMembersClick,
+    onSettingsClick,  // ← added
     onDeleteClick,
+    onBoardAdded,
+    onBoardRemoved,
+    onBoardRenamed,
 }: ProjectRowProps) {
     const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false)
-    const { addBoard } = useBoards(orgId, project.id)
     const projectColor = project.color ?? '#3b82f6'
 
     return (
@@ -76,19 +84,15 @@ function ProjectRow({
                         asChild
                         className="group/item data-[state=open]:bg-accent/50"
                     >
-
-                        <div className="flex items-center justify-around w-full  cursor-pointer">
-                            <div className='flex items-center gap-1.5 '>
+                        <div className="flex items-center justify-around w-full cursor-pointer">
+                            <div className='flex items-center gap-1.5'>
                                 <ChevronRight
-                                    className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''
-                                        }`}
+                                    className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
                                 />
-
                                 <span
                                     className="h-2 w-2 rounded-full shrink-0"
                                     style={{ backgroundColor: projectColor }}
                                 />
-
                                 <span className="flex-1 truncate text-sm">{project.name}</span>
                             </div>
                             <div
@@ -133,7 +137,7 @@ function ProjectRow({
                                             <>
                                                 <DropdownMenuItem
                                                     className="gap-2 cursor-pointer"
-                                                    onSelect={() => { /* settings */ }}
+                                                    onSelect={onSettingsClick}  // ← wired up
                                                 >
                                                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />
                                                     <span>Settings</span>
@@ -163,6 +167,11 @@ function ProjectRow({
                             projectColor={projectColor}
                             canCreate={canCreateBoard}
                             onCreateClick={() => setIsCreateBoardOpen(true)}
+                            boards={project.boards}
+                            isLoading={project.boardsLoading}
+                            error={project.boardsError}
+                            onBoardRemoved={onBoardRemoved}
+                            onBoardRenamed={onBoardRenamed}
                         />
                     </SidebarMenuSub>
                 </CollapsibleContent>
@@ -175,7 +184,7 @@ function ProjectRow({
                 projectId={project.id}
                 projectName={project.name}
                 onSuccess={(board) => {
-                    addBoard(board)
+                    onBoardAdded(board)
                     setIsCreateBoardOpen(false)
                 }}
             />
@@ -187,10 +196,22 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<ProjectTarget>(null)
     const [membersTarget, setMembersTarget] = useState<ProjectTarget>(null)
+    const [settingsTarget, setSettingsTarget] = useState<ProjectTarget>(null)  // ← added
     const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({})
-    const { projects, isLoading, error, addProject, removeProject, refetch } = useProjects(orgId)
-    const isAdmin = userRole === 'ORG_ADMIN'
 
+    const {
+        projects,
+        isLoading,
+        error,
+        addProject,
+        removeProject,
+        refetch,
+        addBoard,
+        removeBoard,
+        renameBoard,
+    } = useProjectsWithBoards(orgId)
+
+    const isAdmin = userRole === 'ORG_ADMIN'
     const [projectMemberships, setProjectMemberships] = useState<ProjectMembership>({})
 
     useEffect(() => {
@@ -289,6 +310,13 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
                                         userIsLead: isProjectLead,
                                     })
                                 }
+                                onSettingsClick={() =>       // ← added
+                                    setSettingsTarget({
+                                        id: project.id,
+                                        name: project.name,
+                                        userIsLead: isProjectLead,
+                                    })
+                                }
                                 onDeleteClick={() =>
                                     setDeleteTarget({
                                         id: project.id,
@@ -296,6 +324,9 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
                                         userIsLead: false,
                                     })
                                 }
+                                onBoardAdded={(board) => addBoard(project.id, board)}
+                                onBoardRemoved={(boardId) => removeBoard(project.id, boardId)}
+                                onBoardRenamed={(boardId, newName) => renameBoard(project.id, boardId, newName)}
                             />
                         )
                     })
@@ -317,6 +348,14 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
                 orgId={orgId}
                 project={deleteTarget}
                 onSuccess={removeProject}
+            />
+
+            <ProjectSettingsDialog
+                open={!!settingsTarget}
+                onOpenChange={(open) => !open && setSettingsTarget(null)}
+                orgId={orgId}
+                projectId={settingsTarget?.id ?? ''}
+                projectName={settingsTarget?.name ?? ''}
             />
 
             <ProjectMembersDialog

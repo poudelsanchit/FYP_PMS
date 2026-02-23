@@ -6,7 +6,6 @@ import { Loader2, AlertCircle, MoreHorizontal, Trash2, Pencil } from 'lucide-rea
 import {
     SidebarMenuSubItem,
     SidebarMenuSubButton,
-    SidebarMenuAction,
 } from '@/core/components/ui/sidebar'
 import {
     DropdownMenu,
@@ -15,7 +14,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/core/components/ui/dropdown-menu'
-import { useBoards } from '../hooks/useBoards'
 import type { Board } from '../hooks/useBoards'
 import { DeleteBoardDialog } from './DeleteBoard'
 import { RenameBoardDialog } from './RenameBoardDialog'
@@ -26,6 +24,12 @@ interface BoardsListProps {
     projectColor: string
     canCreate: boolean
     onCreateClick: () => void
+    // Boards are now owned by the parent — no internal fetching
+    boards: Board[]
+    isLoading: boolean
+    error: string | null
+    onBoardRemoved: (boardId: string) => void
+    onBoardRenamed: (boardId: string, newName: string) => void
 }
 
 export function BoardsList({
@@ -34,10 +38,12 @@ export function BoardsList({
     projectColor,
     canCreate,
     onCreateClick,
+    boards,
+    isLoading,
+    error,
+    onBoardRemoved,
+    onBoardRenamed,
 }: BoardsListProps) {
-    const { boards, isLoading, error, refetch, addBoard, removeBoard, renameBoard } =
-        useBoards(orgId, projectId)
-
     const [deleteTarget, setDeleteTarget] = useState<Board | null>(null)
     const [renameTarget, setRenameTarget] = useState<Board | null>(null)
 
@@ -54,12 +60,9 @@ export function BoardsList({
         return (
             <div className="flex items-center gap-2 px-2 py-1.5">
                 <AlertCircle className="h-3 w-3 text-destructive/60 shrink-0" />
-                <button
-                    onClick={refetch}
-                    className="text-[11px] text-muted-foreground/60 hover:text-foreground underline underline-offset-2 transition-colors"
-                >
-                    Failed to load — retry
-                </button>
+                <span className="text-[11px] text-muted-foreground/60">
+                    Failed to load — retry from sidebar
+                </span>
             </div>
         )
     }
@@ -77,8 +80,8 @@ export function BoardsList({
     return (
         <>
             {boards.map((board) => (
-                <SidebarMenuSubItem key={board.id} className="group/board">
-                    <SidebarMenuSubButton asChild>
+                <SidebarMenuSubItem key={board.id} className="group/board relative flex items-center">
+                    <SidebarMenuSubButton asChild className="flex-1 pr-7">
                         <Link
                             href={`/organizations/${orgId}/projects/${projectId}/boards/${board.id}`}
                             className="flex items-center gap-2"
@@ -90,13 +93,21 @@ export function BoardsList({
                     {canCreate && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <SidebarMenuAction
-                                    showOnHover
-                                    className="opacity-0 group-hover/board:opacity-100"
+                                <button
+                                    className={[
+                                        'absolute right-1 top-1/2 -translate-y-1/2',
+                                        'flex items-center justify-center',
+                                        'h-5 w-5 rounded',
+                                        'text-muted-foreground hover:text-foreground hover:bg-accent',
+                                        // Hidden by default, visible only when this row is hovered or dropdown is open
+                                        'opacity-0 group-hover/board:opacity-100 data-[state=open]:opacity-100',
+                                        'transition-opacity',
+                                    ].join(' ')}
+                                    onClick={(e) => e.preventDefault()}
+                                    aria-label="Board options"
                                 >
                                     <MoreHorizontal className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Board options</span>
-                                </SidebarMenuAction>
+                                </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start" className="w-40">
                                 <DropdownMenuItem
@@ -128,7 +139,7 @@ export function BoardsList({
                     projectId={projectId}
                     boardId={deleteTarget.id}
                     boardName={deleteTarget.name}
-                    onDeleted={removeBoard}
+                    onDeleted={onBoardRemoved}
                 />
             )}
 
@@ -140,7 +151,7 @@ export function BoardsList({
                     projectId={projectId}
                     boardId={renameTarget.id}
                     currentName={renameTarget.name}
-                    onRenamed={renameBoard}
+                    onRenamed={onBoardRenamed}
                 />
             )}
         </>

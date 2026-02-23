@@ -96,7 +96,9 @@ export async function POST(req: NextRequest, { params }: Context) {
 
     return tx.board.findUnique({
       where: { id: created.id },
-      include: { columns: { orderBy: { order: "asc" } } },
+      include: {
+        _count: { select: { columns: true, members: true } },
+      },
     });
   });
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { LayoutGrid } from 'lucide-react'
+import { LayoutGrid, Plus } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -77,16 +77,16 @@ export function CreateBoard({
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="w-full max-w-[680px] rounded-xl border p-8 shadow-2xl">
+            <DialogContent className="w-full max-w-[680px] rounded-sm border p-8 shadow-2xl gap-2">
                 {/* Header */}
-                <DialogHeader className="mb-2">
+                <DialogHeader className="mb-2 gap-0.5">
                     <div className="flex items-center gap-2 ">
                         <LayoutGrid className="w-5 h-5 " strokeWidth={1.8} />
-                        <DialogTitle className="text-[1.15rem] font-semibold  leading-none">
+                        <DialogTitle className="text-xl font-semibold  leading-none">
                             Create a new board
                         </DialogTitle>
                     </div>
-                    <DialogDescription className="text-[1rem]  mt-1 ">
+                    <DialogDescription className="text-sm  mt-1 ">
                         Add a new board to {projectName}.
                     </DialogDescription>
                 </DialogHeader>
@@ -101,7 +101,7 @@ export function CreateBoard({
                         onChange={(e) => setName(e.target.value)}
                         autoFocus
                         disabled={isLoading}
-                        className="h-12 px-4 text-sm rounded-lg border focus-visible:ring-1 transition-colors" />
+                        className="h-10 px-4 text-sm rounded-sm border focus-visible:ring-1 transition-colors" />
 
                     {error && (
                         <p className="text-xs text-red-400 -mt-3">{error}</p>
@@ -119,7 +119,7 @@ export function CreateBoard({
                         </Button>
                         <Button
                             type="submit"
-                            disabled={isLoading || !name.trim()}
+                            disabled={isLoading}
                             className="h-10 px-5 text-sm font-medium disabled:opacity-40 transition-colors"
                         >
                             {isLoading ? (
@@ -131,7 +131,10 @@ export function CreateBoard({
                                     Creating…
                                 </span>
                             ) : (
-                                'Create Space'
+                                <>
+                                    <Plus />
+                                    Create Space
+                                </>
                             )}
                         </Button>
                     </div>

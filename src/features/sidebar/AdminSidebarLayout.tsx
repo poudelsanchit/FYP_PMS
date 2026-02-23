@@ -78,36 +78,40 @@ export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, t
                                 </BreadcrumbItem>
                                 {pathname !== "/admin" && (
                                     <>
-                                        {pathname.split("/").filter(Boolean).slice(1).map((segment, index, arr) => {
-                                            const href = "/admin/" + arr.slice(0, index + 1).join("/");
-                                            const isLast = index === arr.length - 1;
+                                        {pathname
+                                            .split("/")
+                                            .filter(Boolean)
+                                            .slice(1)
+                                            .filter(segment => segment !== tenantId)
+                                            .map((segment, index, arr) => {
+                                                const href = "/" + ["app", tenantId, ...arr.slice(0, index + 1)].join("/");
+                                                const isLast = index === arr.length - 1;
 
-                                            // Check if this is a board ID segment and we have the board name
-                                            const isBoardId = segment.length === 24 && arr[index - 1] === "boards" && boardName;
-                                            const label = isBoardId
-                                                ? boardName
-                                                : segment
-                                                    .split("-")
-                                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                                    .join(" ");
+                                                const isBoardId = segment.length === 24 && arr[index - 1] === "boards" && boardName;
+                                                const label = isBoardId
+                                                    ? boardName
+                                                    : segment
+                                                        .split("-")
+                                                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                                        .join(" ");
 
-                                            return (
-                                                <div key={segment} className="flex items-center gap-2">
-                                                    <BreadcrumbSeparator className="hidden md:block" />
-                                                    <BreadcrumbItem>
-                                                        {isLast ? (
-                                                            <BreadcrumbLink className="dark:text-white text-black font-medium">
-                                                                {label}
-                                                            </BreadcrumbLink>
-                                                        ) : (
-                                                            <Link href={href} className="hover:text-foreground">
-                                                                {label}
-                                                            </Link>
-                                                        )}
-                                                    </BreadcrumbItem>
-                                                </div>
-                                            );
-                                        })}
+                                                return (
+                                                    <div key={segment} className="flex items-center gap-2">
+                                                        <BreadcrumbSeparator className="hidden md:block" />
+                                                        <BreadcrumbItem>
+                                                            {isLast ? (
+                                                                <BreadcrumbLink className="dark:text-white text-black font-medium">
+                                                                    {label}
+                                                                </BreadcrumbLink>
+                                                            ) : (
+                                                                <Link href={href} className="hover:text-foreground">
+                                                                    {label}
+                                                                </Link>
+                                                            )}
+                                                        </BreadcrumbItem>
+                                                    </div>
+                                                );
+                                            })}
                                     </>
                                 )}
                             </BreadcrumbList>

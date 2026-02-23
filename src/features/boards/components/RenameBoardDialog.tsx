@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -64,7 +64,7 @@ export function RenameBoardDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-sm">
+            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Rename board</DialogTitle>
                 </DialogHeader>
@@ -110,7 +110,9 @@ export function RenameBoardDialog({
                                     Saving…
                                 </>
                             ) : (
-                                'Save'
+                                <>
+                                    Rename Board
+                                </>
                             )}
                         </Button>
                     </DialogFooter>
