@@ -100,7 +100,7 @@ export function IssueCard({ issue, onClick, isDragOverlay = false }: IssueCardPr
   if (isDragOverlay) {
     return (
       <div
-        className="group relative rounded-xl border bg-card text-card-foreground shadow-2xl rotate-[1.5deg] scale-[1.03] cursor-grabbing select-none"
+        className="group relative rounded-sm border bg-card text-card-foreground shadow-2xl rotate-[1.5deg] scale-[1.03] cursor-grabbing select-none"
       >
         <CardContent issue={issue} />
       </div>
@@ -126,7 +126,7 @@ export function IssueCard({ issue, onClick, isDragOverlay = false }: IssueCardPr
         zIndex: isDragging ? 1000 : undefined,
       }}
       className={[
-        'group relative rounded-xl border bg-card text-card-foreground',
+        'group relative rounded-xs border bg-card text-card-foreground',
         'shadow-sm hover:shadow-md transition-shadow duration-200',
         'select-none cursor-grab active:cursor-grabbing',
       ].join(' ')}

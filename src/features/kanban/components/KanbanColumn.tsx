@@ -63,7 +63,7 @@ export function KanbanColumn({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="flex flex-col w-72 shrink-0 h-fit"
+            className="flex flex-col gap-2 w-72 shrink-0 h-fit"
         >
             {/* Column Header */}
             <div className={[
@@ -136,12 +136,9 @@ export function KanbanColumn({
             <div
                 ref={setNodeRef}
                 className={[
-                    'flex flex-col gap-2 min-h-[120px] p-2 rounded-xl transition-all duration-150',
-                    isOver
-                        ? 'bg-primary/5 ring-2 ring-primary/25 min-h-[300px]'
-                        : 'bg-muted/30',
-                ].join(' ')}
-            >
+                    'flex flex-col gap-2  rounded-sm transition-all duration-150 ',
+                    issues.length === 0 ? '' : 'min-h-[120px]',
+                ].join(' ')} >
                 <AnimatePresence mode="popLayout">
                     {issues.map(issue => (
                         <IssueCard
@@ -152,21 +149,11 @@ export function KanbanColumn({
                     ))}
                 </AnimatePresence>
 
-                {issues.length === 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex-1 flex items-center justify-center py-8"
-                    >
-                        <p className="text-xs text-muted-foreground/50 italic">Drop issues here</p>
-                    </motion.div>
-                )}
-
                 {canManage && (
                     <button
                         onClick={() => onAddIssue(column.id)}
                         className={[
-                            'flex items-center gap-2 w-full px-3 py-2 rounded-lg',
+                            'flex cursor-pointer items-center gap-2 w-full px-3 py-2 rounded-none',
                             'text-xs text-muted-foreground/60 hover:text-muted-foreground',
                             'hover:bg-muted/60 border border-dashed border-transparent hover:border-border/60',
                             'transition-all duration-150 mt-auto',
@@ -177,6 +164,6 @@ export function KanbanColumn({
                     </button>
                 )}
             </div>
-        </motion.div>
+        </motion.div >
     )
 }
