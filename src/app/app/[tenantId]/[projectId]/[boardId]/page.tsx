@@ -9,10 +9,10 @@ interface PageProps {
 
 export default function BoardPage({ params }: PageProps) {
     const { tenantId, projectId, boardId } = use(params)
-   
+
 
     return (
-        <div className="h-full flex flex-col overflow-hidden bg-background">
+        <div className="flex flex-col flex-1 min-h-0 bg-background overflow-hidden">
             <KanbanBoard
                 orgId={tenantId}
                 projectId={projectId}

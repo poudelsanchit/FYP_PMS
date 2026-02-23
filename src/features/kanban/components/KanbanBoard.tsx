@@ -266,43 +266,45 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
             </motion.div>
 
             {/* Board canvas */}
-            <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                <DndContext
-                    sensors={sensors}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDragEnd={handleDragEnd}
-                >
-                    <div className="flex gap-4 p-6 h-full min-h-0">
-                        <AnimatePresence>
-                            {columns.map(column => (
-                                <KanbanColumn
-                                    key={column.id}
-                                    column={column}
-                                    issues={issuesByColumn.get(column.id) ?? []}
-                                    canManage={canManage}
-                                    onIssueClick={handleIssueClick}
-                                    onAddIssue={(colId) => { setCreateColumnId(colId); setCreateOpen(true) }}
-                                    onRename={handleRenameColumn}
-                                    onDelete={handleDeleteColumn}
+            <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                <div className="h-full">
+                    <DndContext
+                        sensors={sensors}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div className="flex gap-4 p-6 min-w-max">
+                            <AnimatePresence>
+                                {columns.map(column => (
+                                    <KanbanColumn
+                                        key={column.id}
+                                        column={column}
+                                        issues={issuesByColumn.get(column.id) ?? []}
+                                        canManage={canManage}
+                                        onIssueClick={handleIssueClick}
+                                        onAddIssue={(colId) => { setCreateColumnId(colId); setCreateOpen(true) }}
+                                        onRename={handleRenameColumn}
+                                        onDelete={handleDeleteColumn}
+                                    />
+                                ))}
+                            </AnimatePresence>
+
+                            {canManage && <AddColumn onAdd={handleAddColumn} />}
+                        </div>
+
+                        {/* Drag overlay — floating card while dragging */}
+                        <DragOverlay>
+                            {activeIssue && (
+                                <IssueCard
+                                    issue={activeIssue}
+                                    onClick={() => { }}
+                                    isDragOverlay
                                 />
-                            ))}
-                        </AnimatePresence>
-
-                        {canManage && <AddColumn onAdd={handleAddColumn} />}
-                    </div>
-
-                    {/* Drag overlay — floating card while dragging */}
-                    <DragOverlay>
-                        {activeIssue && (
-                            <IssueCard
-                                issue={activeIssue}
-                                onClick={() => { }}
-                                isDragOverlay
-                            />
-                        )}
-                    </DragOverlay>
-                </DndContext>
+                            )}
+                        </DragOverlay>
+                    </DndContext>
+                </div>
             </div>
 
             {/* Issue detail panel */}
