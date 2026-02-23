@@ -83,7 +83,7 @@ export function BoardsList({
                 <SidebarMenuSubItem key={board.id} className="group/board relative flex items-center">
                     <SidebarMenuSubButton asChild className="flex-1 pr-7">
                         <Link
-                            href={`/organizations/${orgId}/projects/${projectId}/boards/${board.id}`}
+                            href={`/app/${orgId}/${projectId}/${board.id}`}
                             className="flex items-center gap-2"
                         >
                             <span className="truncate">{board.name}</span>
