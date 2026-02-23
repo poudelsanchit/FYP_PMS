@@ -20,6 +20,7 @@ import { IssueDetail } from './Issuedetail'
 import { CreateIssueModal } from './CreateIssue'
 import { AddColumn } from './AddColumn'
 import type { Issue, Column } from '../types/types'
+import { Button } from '@/core/components/ui/button'
 
 interface KanbanBoardProps {
     orgId: string
@@ -54,6 +55,7 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
 
     // DnD state
     const [activeIssue, setActiveIssue] = useState<Issue | null>(null)
+    const [dragStartPosition, setDragStartPosition] = useState<{ columnId: string; order: number } | null>(null)
 
     // UI state
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
@@ -108,66 +110,128 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         const issue = issues.find(i => i.id === event.active.id)
-        setActiveIssue(issue ?? null)
+        if (issue) {
+            setActiveIssue(issue)
+            // Store the original position before any optimistic updates
+            setDragStartPosition({ columnId: issue.columnId, order: issue.order })
+        }
     }, [issues])
 
     const handleDragOver = useCallback((event: DragOverEvent) => {
         const { active, over } = event
-        if (!over || active.id === over.id) return
+        if (!over || active.id === over.id || !dragStartPosition) return
 
         const activeIssue = issues.find(i => i.id === active.id)
         if (!activeIssue) return
 
-        // Over a column
-        const overIsColumn = columns.some(c => c.id === over.id)
-        if (overIsColumn && activeIssue.columnId !== over.id) {
-            moveIssueOptimistic(String(active.id), String(over.id), 9999)
+        // Check if over a column
+        const overColumn = columns.find(c => c.id === over.id)
+        if (overColumn) {
+            if (activeIssue.columnId !== overColumn.id) {
+                // Moving to a different column - place at the end
+                const targetColumnIssues = issues.filter(i => i.columnId === overColumn.id && i.id !== active.id)
+                const newOrder = targetColumnIssues.length
+                moveIssueOptimistic(String(active.id), overColumn.id, newOrder)
+            }
+            return
         }
 
-        // Over another issue
+        // Check if over another issue
         const overIssue = issues.find(i => i.id === over.id)
-        if (overIssue && overIssue.columnId !== activeIssue.columnId) {
-            moveIssueOptimistic(String(active.id), overIssue.columnId, overIssue.order)
+        if (overIssue && activeIssue.id !== overIssue.id) {
+            const targetColumnId = overIssue.columnId
+
+            if (activeIssue.columnId !== targetColumnId) {
+                // Moving to a different column - insert at the position of the issue we're hovering over
+                const targetColumnIssues = issues.filter(i => i.columnId === targetColumnId && i.id !== active.id)
+                const overIssueIndex = targetColumnIssues.findIndex(i => i.id === overIssue.id)
+                const newOrder = overIssueIndex >= 0 ? overIssueIndex : targetColumnIssues.length
+                moveIssueOptimistic(String(active.id), targetColumnId, newOrder)
+            } else if (activeIssue.order !== overIssue.order) {
+                // Reordering within the same column
+                const sameColumnIssues = issues.filter(i => i.columnId === targetColumnId && i.id !== active.id)
+                const overIssueIndex = sameColumnIssues.findIndex(i => i.id === overIssue.id)
+                const newOrder = overIssueIndex >= 0 ? overIssueIndex : sameColumnIssues.length
+                moveIssueOptimistic(String(active.id), targetColumnId, newOrder)
+            }
         }
-    }, [issues, columns, moveIssueOptimistic])
+    }, [issues, columns, dragStartPosition, moveIssueOptimistic])
 
     const handleDragEnd = useCallback(async (event: DragEndEvent) => {
         const { active, over } = event
         setActiveIssue(null)
 
-        if (!over) return
+        if (!over || !dragStartPosition) {
+            setDragStartPosition(null)
+            return
+        }
 
         const movedIssue = issues.find(i => i.id === active.id)
-        if (!movedIssue) return
-
-        // Determine target column and order
-        let targetColumnId = movedIssue.columnId
-        let targetOrder = movedIssue.order
-
-        const overIsColumn = columns.some(c => c.id === over.id)
-        if (overIsColumn) {
-            targetColumnId = String(over.id)
-            const colIssues = issues.filter(i => i.columnId === targetColumnId && i.id !== movedIssue.id)
-            targetOrder = colIssues.length
-        } else {
-            const overIssue = issues.find(i => i.id === over.id)
-            if (overIssue) {
-                targetColumnId = overIssue.columnId
-                targetOrder = overIssue.order
-            }
+        if (!movedIssue) {
+            setDragStartPosition(null)
+            return
         }
 
-        if (targetColumnId === movedIssue.columnId && targetOrder === movedIssue.order) return
+        // Use the stored original position
+        const originalColumnId = dragStartPosition.columnId
+        const originalOrder = dragStartPosition.order
+
+        // Current position after optimistic updates
+        const currentColumnId = movedIssue.columnId
+        const currentOrder = movedIssue.order
+
+        // Only update if something changed from the original position
+        const columnChanged = currentColumnId !== originalColumnId
+        const orderChanged = currentOrder !== originalOrder
+
+        setDragStartPosition(null)
+
+        if (!columnChanged && !orderChanged) return
+
+        // Log the entire board state after drop
+        console.log('=== KANBAN BOARD STATE AFTER DROP ===')
+        console.log('Columns:', columns.map(c => ({ id: c.id, name: c.name, order: c.order })))
+        console.log('Issues by Column:', 
+            columns.map(col => ({
+                columnId: col.id,
+                columnName: col.name,
+                issues: issues
+                    .filter(i => i.columnId === col.id)
+                    .sort((a, b) => a.order - b.order)
+                    .map(i => ({ 
+                        id: i.id, 
+                        title: i.title, 
+                        order: i.order,
+                        columnId: i.columnId 
+                    }))
+            }))
+        )
+        console.log('Moved Issue:', {
+            id: movedIssue.id,
+            title: movedIssue.title,
+            from: { columnId: originalColumnId, order: originalOrder },
+            to: { columnId: currentColumnId, order: currentOrder }
+        })
+        console.log('=====================================')
 
         try {
-            await updateIssue(movedIssue.id, {
-                columnId: targetColumnId !== movedIssue.columnId ? targetColumnId : undefined,
-                order: targetOrder,
-            })
-        } catch {
-            // Revert on failure — refetch
+            const payload: { columnId?: string; order: number } = {
+                order: currentOrder,
+            }
+
+            // Only include columnId if it changed
+            if (columnChanged) {
+                payload.columnId = currentColumnId
+            }
+
+            // Make API call to persist the change (skip state update since we already did optimistic update)
+            await updateIssue(movedIssue.id, payload, true)
+        } catch (error) {
+            console.error('Failed to update issue position:', error)
+            // Rollback optimistic update on error
+            moveIssueOptimistic(String(active.id), originalColumnId, originalOrder)
         }
-    }, [issues, columns, updateIssue])
+    }, [issues, columns, dragStartPosition, updateIssue, moveIssueOptimistic])
 
     // Group issues by column, sorted by order
     const issuesByColumn = useMemo(() => {
@@ -205,6 +269,33 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
     const handleIssueUpdate = async (issueId: string, payload: Parameters<typeof updateIssue>[1]) => {
         const updated = await updateIssue(issueId, payload)
         setSelectedIssue(updated)
+        
+        // Log the entire board state after update
+        console.log('=== KANBAN BOARD STATE AFTER UPDATE ===')
+        console.log('Columns:', columns.map(c => ({ id: c.id, name: c.name, order: c.order })))
+        console.log('Issues by Column:', 
+            columns.map(col => ({
+                columnId: col.id,
+                columnName: col.name,
+                issues: issues
+                    .filter(i => i.columnId === col.id)
+                    .sort((a, b) => a.order - b.order)
+                    .map(i => ({ 
+                        id: i.id, 
+                        title: i.title, 
+                        order: i.order,
+                        columnId: i.columnId 
+                    }))
+            }))
+        )
+        console.log('Updated Issue:', {
+            id: updated.id,
+            title: updated.title,
+            columnId: updated.columnId,
+            order: updated.order,
+            payload
+        })
+        console.log('========================================')
     }
 
     const handleIssueDelete = async (issueId: string) => {
@@ -255,13 +346,13 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
                 </div>
 
                 {canManage && (
-                    <button
+                    <Button
                         onClick={() => { setCreateColumnId(null); setCreateOpen(true) }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-all shadow-sm"
+                        className='rounded-xs cursor-pointer'
                     >
                         <Plus className="h-3.5 w-3.5" />
                         New issue
-                    </button>
+                    </Button>
                 )}
             </motion.div>
 

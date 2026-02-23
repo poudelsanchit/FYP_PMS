@@ -18,7 +18,8 @@ interface CreateIssueModalProps {
         description?: string
         labelId?: string
         priorityId?: string
-    }) => Promise<void>
+        assigneeIds?: string[]
+    }) => Promise<unknown>
 }
 
 export function CreateIssueModal({

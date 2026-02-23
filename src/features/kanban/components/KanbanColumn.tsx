@@ -2,8 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Plus, MoreHorizontal, Pencil, Trash2, X, Check } from 'lucide-react'
 import {
     DropdownMenu,
@@ -41,8 +40,6 @@ export function KanbanColumn({
 
     const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
-    const issueIds = issues.map(i => i.id)
-
     const handleRenameConfirm = () => {
         if (renameValue.trim() && renameValue.trim() !== column.name) {
             onRename(column.id, renameValue.trim())
@@ -66,14 +63,12 @@ export function KanbanColumn({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="flex flex-col w-72 shrink-0"
+            className="flex flex-col w-72 shrink-0 h-fit"
         >
             {/* Column Header */}
             <div className={[
-                'flex items-center justify-between px-3 py-2.5 mb-2 rounded-xl',
-                'border bg-card/80 backdrop-blur-sm',
+                'flex items-center justify-between px-3 py-2.5 mb-2 border bg-card/80 backdrop-blur-sm transition-colors duration-150',
                 isOver ? 'border-primary/40 bg-primary/5' : 'border-border/60',
-                'transition-colors duration-150',
             ].join(' ')}>
                 {isRenaming ? (
                     <div className="flex items-center gap-1.5 flex-1 mr-1">
@@ -141,23 +136,21 @@ export function KanbanColumn({
             <div
                 ref={setNodeRef}
                 className={[
-                    'flex flex-col gap-2 flex-1 min-h-[120px] p-2 rounded-xl transition-colors duration-150',
+                    'flex flex-col gap-2 min-h-[120px] p-2 rounded-xl transition-all duration-150',
                     isOver
-                        ? 'bg-primary/5 ring-2 ring-primary/25'
+                        ? 'bg-primary/5 ring-2 ring-primary/25 min-h-[300px]'
                         : 'bg-muted/30',
                 ].join(' ')}
             >
-                <SortableContext items={issueIds} strategy={verticalListSortingStrategy}>
-                    <AnimatePresence>
-                        {issues.map(issue => (
-                            <IssueCard
-                                key={issue.id}
-                                issue={issue}
-                                onClick={() => onIssueClick(issue)}
-                            />
-                        ))}
-                    </AnimatePresence>
-                </SortableContext>
+                <AnimatePresence mode="popLayout">
+                    {issues.map(issue => (
+                        <IssueCard
+                            key={issue.id}
+                            issue={issue}
+                            onClick={() => onIssueClick(issue)}
+                        />
+                    ))}
+                </AnimatePresence>
 
                 {issues.length === 0 && (
                     <motion.div

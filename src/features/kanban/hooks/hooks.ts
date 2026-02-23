@@ -83,7 +83,7 @@ export function useIssues(orgId: string, projectId: string, boardId: string) {
     order: number
     labelId: string | null
     priorityId: string | null
-  }>) => {
+  }>, skipStateUpdate = false) => {
     const res = await window.fetch(`${BASE(orgId, projectId, boardId)}/issues/${issueId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -91,7 +91,12 @@ export function useIssues(orgId: string, projectId: string, boardId: string) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to update issue')
-    setIssues(prev => prev.map(i => i.id === issueId ? data.data : i))
+    
+    // Only update state if not skipping (for drag-and-drop, we skip since we already did optimistic update)
+    if (!skipStateUpdate) {
+      setIssues(prev => prev.map(i => i.id === issueId ? data.data : i))
+    }
+    
     return data.data as Issue
   }, [orgId, projectId, boardId])
 
@@ -109,9 +114,13 @@ export function useIssues(orgId: string, projectId: string, boardId: string) {
     targetColumnId: string,
     newOrder: number
   ) => {
-    setIssues(prev => prev.map(i =>
-      i.id === issueId ? { ...i, columnId: targetColumnId, order: newOrder } : i
-    ))
+    setIssues(prev => {
+      return prev.map(i => 
+        i.id === issueId 
+          ? { ...i, columnId: targetColumnId, order: newOrder } 
+          : i
+      )
+    })
   }, [])
 
   return {
