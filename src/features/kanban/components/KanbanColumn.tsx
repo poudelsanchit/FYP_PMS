@@ -93,7 +93,9 @@ export function KanbanColumn({
                     <div className="flex items-center gap-2 min-w-0">
                         <h3 className="text-sm font-semibold text-foreground truncate">{column.name}</h3>
                         {column.isCompleted && (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" title="Completed column" />
+                            <span title="Completed column">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                            </span>
                         )}
                         <span className="shrink-0 text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full leading-none">
                             {issues.length}
