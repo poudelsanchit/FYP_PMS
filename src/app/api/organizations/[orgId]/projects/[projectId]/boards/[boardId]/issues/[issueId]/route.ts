@@ -4,7 +4,7 @@
  * DELETE /api/organizations/[orgId]/projects/[projectId]/boards/[boardId]/issues/[issueId]
  *
  * PATCH body (all optional):
- *   title, description, columnId, order, labelId, priorityId
+ *   title, description, columnId, order, labelId, priorityId, dueDate
  *
  * Moving to a new column: pass columnId (order defaults to end of target column).
  * Reordering within a column: pass order only.
@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest, { params }: Context) {
   if (!issue) return err("Issue not found", 404);
 
   const body = await req.json();
-  const { title, description, columnId, order, labelId, priorityId } = body;
+  const { title, description, columnId, order, labelId, priorityId, dueDate } = body;
 
   if (columnId && columnId !== issue.columnId) {
     const col = await prisma.column.findFirst({
@@ -113,6 +113,7 @@ export async function PATCH(req: NextRequest, { params }: Context) {
       ...(resolvedOrder !== undefined && { order: resolvedOrder }),
       ...(labelId !== undefined && { labelId: labelId ?? null }),
       ...(priorityId !== undefined && { priorityId: priorityId ?? null }),
+      ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
     },
     include: {
       label: true,

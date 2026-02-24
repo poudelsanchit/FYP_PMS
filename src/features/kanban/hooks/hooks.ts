@@ -68,6 +68,7 @@ export function useIssues(orgId: string, projectId: string, boardId: string) {
       description?: string;
       labelId?: string;
       priorityId?: string;
+      dueDate?: string;
       assigneeIds?: string[];
     }) => {
       const res = await window.fetch(
@@ -96,6 +97,7 @@ export function useIssues(orgId: string, projectId: string, boardId: string) {
         order: number;
         labelId: string | null;
         priorityId: string | null;
+        dueDate: string | null;
       }>,
       skipStateUpdate = false,
     ) => {

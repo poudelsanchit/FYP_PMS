@@ -28,6 +28,7 @@ interface CreateIssueModalProps {
         description?: string
         labelId?: string
         priorityId?: string
+        dueDate?: string
         assigneeIds?: string[]
     }) => Promise<unknown>
 }
@@ -63,6 +64,7 @@ export function CreateIssueModal({
     const [columnId, setColumnId] = useState(defaultColumnId ?? columns[0]?.id ?? '')
     const [labelId, setLabelId] = useState('')
     const [priorityId, setPriorityId] = useState('')
+    const [dueDate, setDueDate] = useState<string | null>(null)
     const [assigneeIds, setAssigneeIds] = useState<string[]>([])
     const [createAnother, setCreateAnother] = useState(false)
     const [submitting, setSubmitting] = useState(false)
@@ -78,6 +80,7 @@ export function CreateIssueModal({
             setColumnId(defaultColumnId ?? columns[0]?.id ?? '')
             setLabelId('')
             setPriorityId('')
+            setDueDate(null)
             setAssigneeIds([])
             setError(null)
             setTimeout(() => titleRef.current?.focus(), 60)
@@ -99,6 +102,7 @@ export function CreateIssueModal({
                 description: description.trim() || undefined,
                 labelId: labelId || undefined,
                 priorityId: priorityId || undefined,
+                dueDate: dueDate || undefined,
                 assigneeIds: assigneeIds.length > 0 ? assigneeIds : undefined,
             })
 
@@ -107,6 +111,7 @@ export function CreateIssueModal({
                 setDescription('')
                 setLabelId('')
                 setPriorityId('')
+                setDueDate(null)
                 setAssigneeIds([])
                 setTimeout(() => titleRef.current?.focus(), 60)
             } else {
@@ -173,12 +178,14 @@ export function CreateIssueModal({
                         priorityId={priorityId}
                         labelId={labelId}
                         assigneeIds={assigneeIds}
+                        dueDate={dueDate ?? undefined}
                         priorityOptions={priorityOptions}
                         labelOptions={labelOptions}
                         members={members}
                         onPriorityChange={setPriorityId}
                         onLabelChange={setLabelId}
                         onAssigneesChange={setAssigneeIds}
+                        onDueDateChange={setDueDate}
                     />
 
                     {/* ── Error ── */}

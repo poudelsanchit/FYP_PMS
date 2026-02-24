@@ -36,6 +36,7 @@ export interface Issue {
   order: number
   labelId: string | null
   priorityId: string | null
+  dueDate: string | null
   label: Label | null
   priority: Priority | null
   assignees: IssueAssignee[]

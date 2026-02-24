@@ -9,7 +9,7 @@
  *   assigneeId=<id>        – filter by assignee
  *   includeAssignees=true  – include assignee user objects
  *
- * POST body: { title, columnId, description?, labelId?, priorityId?, assigneeIds?: string[] }
+ * POST body: { title, columnId, description?, labelId?, priorityId?, dueDate?, assigneeIds?: string[] }
  */
 
 import { NextRequest } from "next/server";
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   if (!access.ok) return access.response;
 
   const body = await req.json();
-  const { title, columnId, description, labelId, priorityId, assigneeIds } =
+  const { title, columnId, description, labelId, priorityId, dueDate, assigneeIds } =
     body;
 
   if (!title?.trim()) return err("Issue title is required");
@@ -115,6 +115,7 @@ export async function POST(req: NextRequest, { params }: Context) {
         order,
         labelId: labelId ?? null,
         priorityId: priorityId ?? null,
+        dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
 

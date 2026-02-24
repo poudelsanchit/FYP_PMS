@@ -109,6 +109,11 @@ function PriorityChip({ name, color }: { name: string; color: string }) {
 function CardContent({ issue }: { issue: Issue }) {
   const hasChips = issue.label || issue.priority
   const hasAssignees = issue.assignees && issue.assignees.length > 0
+  const hasDueDate = !!issue.dueDate
+
+  // Check if due date is overdue
+  const isDueToday = hasDueDate && issue.dueDate && new Date(issue.dueDate).toDateString() === new Date().toDateString()
+  const isOverdue = hasDueDate && issue.dueDate && new Date(issue.dueDate) < new Date() && !isDueToday
 
   return (
     <div className="flex flex-col gap-2.5 p-3">
@@ -130,11 +135,29 @@ function CardContent({ issue }: { issue: Issue }) {
         {issue.title}
       </p>
 
-      {/* Footer: assignees */}
+      {/* Footer: due date and assignees */}
       <div className="flex items-center justify-between pt-0.5">
-        {hasAssignees ? (
-          <AssigneeStack assignees={issue.assignees} />
-        ) : (
+        <div className="flex items-center gap-2">
+          {hasDueDate && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-[10px] font-medium",
+                isOverdue
+                  ? "text-red-600 dark:text-red-400"
+                  : isDueToday
+                  ? "text-orange-600 dark:text-orange-400"
+                  : "text-muted-foreground"
+              )}
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {issue.dueDate && new Date(issue.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+          )}
+          {hasAssignees && <AssigneeStack assignees={issue.assignees} />}
+        </div>
+        {!hasAssignees && !hasDueDate && (
           <span className="text-[10px] text-muted-foreground/40 select-none">
             Unassigned
           </span>

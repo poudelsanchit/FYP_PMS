@@ -26,6 +26,7 @@ interface IssueDetailProps {
         description?: string
         labelId?: string | null
         priorityId?: string | null
+        dueDate?: string | null
     }) => Promise<void>
     onDelete: (issueId: string) => Promise<void>
     onAddAssignee: (issueId: string, userId: string) => Promise<void>
@@ -316,13 +317,46 @@ export function IssueDetail({
                                         }
                                     }}
                                 />
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
-                                >
-                                    <CalendarDays className="h-3.5 w-3.5 opacity-60" />
-                                    Due date
-                                </button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className={cn(
+                                                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 transition-all",
+                                                issue.dueDate
+                                                    ? "bg-muted text-foreground hover:bg-muted/80"
+                                                    : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border"
+                                            )}
+                                        >
+                                            <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                                            {issue.dueDate
+                                                ? new Date(issue.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                                : 'Due date'}
+                                        </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" sideOffset={6} className="w-auto p-3 rounded-lg shadow-lg">
+                                        <div className="flex flex-col gap-2">
+                                            <input
+                                                type="datetime-local"
+                                                value={issue.dueDate ? new Date(issue.dueDate).toISOString().slice(0, 16) : ''}
+                                                onChange={(e) => {
+                                                    const value = e.target.value ? new Date(e.target.value).toISOString() : null
+                                                    onUpdate(issue.id, { dueDate: value })
+                                                }}
+                                                className="px-2.5 py-1.5 text-xs rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            />
+                                            {issue.dueDate && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onUpdate(issue.id, { dueDate: null })}
+                                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                                >
+                                                    Clear due date
+                                                </button>
+                                            )}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
 
                         </div>

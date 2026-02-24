@@ -69,6 +69,7 @@ export default function IssueDetailPage({ params }: PageProps) {
         description?: string
         labelId?: string | null
         priorityId?: string | null
+        dueDate?: string | null
     }) => {
         if (!issue) return
         setSaving(true)
@@ -271,7 +272,10 @@ export default function IssueDetailPage({ params }: PageProps) {
 
                         {/* Due date */}
                         <MetadataField label="Due date">
-                            <DueDateField />
+                            <DueDateField
+                                value={issue.dueDate}
+                                onChange={date => handleUpdate({ dueDate: date })}
+                            />
                         </MetadataField>
                     </div>
                 </div>

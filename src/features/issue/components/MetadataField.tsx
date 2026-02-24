@@ -82,15 +82,55 @@ export function AssigneeField({ selectedIds, members, onSelectionChange }: Assig
 
 // ─── Due date field ───────────────────────────────────────────────────────────
 
-export function DueDateField() {
+import { Popover, PopoverContent, PopoverTrigger } from '@/core/components/ui/popover'
+
+interface DueDateFieldProps {
+    value?: string | null
+    onChange: (date: string | null) => void
+}
+
+export function DueDateField({ value, onChange }: DueDateFieldProps) {
     return (
-        <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
-        >
-            <CalendarDays className="h-3.5 w-3.5 opacity-60" />
-            No due date
-        </button>
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 transition-all",
+                        value
+                            ? "bg-muted text-foreground hover:bg-muted/80"
+                            : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border"
+                    )}
+                >
+                    <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                    {value
+                        ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : 'No due date'}
+                </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" sideOffset={6} className="w-auto p-3 rounded-lg shadow-lg">
+                <div className="flex flex-col gap-2">
+                    <input
+                        type="datetime-local"
+                        value={value ? new Date(value).toISOString().slice(0, 16) : ''}
+                        onChange={(e) => {
+                            const newValue = e.target.value ? new Date(e.target.value).toISOString() : null
+                            onChange(newValue)
+                        }}
+                        className="px-2.5 py-1.5 text-xs rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    {value && (
+                        <button
+                            type="button"
+                            onClick={() => onChange(null)}
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            Clear due date
+                        </button>
+                    )}
+                </div>
+            </PopoverContent>
+        </Popover>
     )
 }
 
@@ -156,6 +196,9 @@ interface IssueMetadataPanelProps {
     assigneeIds: string[]
     members: AssigneeMember[]
     onAssigneesChange: (ids: string[]) => void
+    // Due date
+    dueDate?: string | null
+    onDueDateChange: (date: string | null) => void
 }
 
 export function IssueMetadataPanel({
@@ -173,6 +216,8 @@ export function IssueMetadataPanel({
     assigneeIds,
     members,
     onAssigneesChange,
+    dueDate,
+    onDueDateChange,
 }: IssueMetadataPanelProps) {
     return (
         <div className="rounded-lg border border-border/50 bg-card px-4 divide-y divide-border/40">
@@ -211,7 +256,7 @@ export function IssueMetadataPanel({
             </MetadataField>
 
             <MetadataField label="Due date">
-                <DueDateField />
+                <DueDateField value={dueDate} onChange={onDueDateChange} />
             </MetadataField>
         </div>
     )
