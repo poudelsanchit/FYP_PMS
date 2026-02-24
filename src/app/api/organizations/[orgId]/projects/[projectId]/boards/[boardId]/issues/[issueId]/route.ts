@@ -65,12 +65,6 @@ export async function PATCH(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (
-    access.boardMember?.role === "BOARD_VIEWER" &&
-    access.orgMember.role !== "ORG_ADMIN"
-  )
-    return err("Forbidden: viewers cannot edit issues", 403);
-
   const issue = await getIssueOnBoard(issueId, boardId);
   if (!issue) return err("Issue not found", 404);
 
@@ -140,7 +134,7 @@ export async function DELETE(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (!canManageBoard(access.orgMember, access.boardMember))
+  if (!canManageBoard(access.orgMember, access.projectMember))
     return err("Forbidden: insufficient role", 403);
 
   const issue = await getIssueOnBoard(issueId, boardId);

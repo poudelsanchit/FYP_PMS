@@ -20,6 +20,7 @@ interface CreateIssueModalProps {
     columns: Column[]
     labels: Label[]
     priorities: Priority[]
+    members: { id: string; name: string | null; email: string; avatar: string | null }[]
     onClose: () => void
     onCreate: (payload: {
         title: string
@@ -53,6 +54,7 @@ export function CreateIssueModal({
     columns,
     labels,
     priorities,
+    members,
     onClose,
     onCreate,
 }: CreateIssueModalProps) {
@@ -61,6 +63,7 @@ export function CreateIssueModal({
     const [columnId, setColumnId] = useState(defaultColumnId ?? columns[0]?.id ?? '')
     const [labelId, setLabelId] = useState('')
     const [priorityId, setPriorityId] = useState('')
+    const [assigneeIds, setAssigneeIds] = useState<string[]>([])
     const [createAnother, setCreateAnother] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -75,6 +78,7 @@ export function CreateIssueModal({
             setColumnId(defaultColumnId ?? columns[0]?.id ?? '')
             setLabelId('')
             setPriorityId('')
+            setAssigneeIds([])
             setError(null)
             setTimeout(() => titleRef.current?.focus(), 60)
         }
@@ -95,6 +99,7 @@ export function CreateIssueModal({
                 description: description.trim() || undefined,
                 labelId: labelId || undefined,
                 priorityId: priorityId || undefined,
+                assigneeIds: assigneeIds.length > 0 ? assigneeIds : undefined,
             })
 
             if (createAnother) {
@@ -102,6 +107,7 @@ export function CreateIssueModal({
                 setDescription('')
                 setLabelId('')
                 setPriorityId('')
+                setAssigneeIds([])
                 setTimeout(() => titleRef.current?.focus(), 60)
             } else {
                 onClose()
@@ -134,7 +140,7 @@ export function CreateIssueModal({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-[520px] p-0 gap-0 overflow-visible">
+            <DialogContent className="max-w-[600px] p-0 gap-0 overflow-visible">
                 <form onSubmit={handleSubmit} className="flex flex-col">
 
                     {/* ── Header ── */}
@@ -154,7 +160,7 @@ export function CreateIssueModal({
                             onChange={setTitle}
                             onEnter={() => document.getElementById('issue-desc')?.focus()}
                         />
-                        <Separator  className='h-0.5 bg-border/50 '/>
+                        <Separator className='h-0.5 bg-border/50 ' />
                         <IssueDescriptionInput
                             id="issue-desc"
                             value={description}
@@ -166,10 +172,13 @@ export function CreateIssueModal({
                     <IssueMetaBar
                         priorityId={priorityId}
                         labelId={labelId}
+                        assigneeIds={assigneeIds}
                         priorityOptions={priorityOptions}
                         labelOptions={labelOptions}
+                        assigneeOptions={members}
                         onPriorityChange={setPriorityId}
                         onLabelChange={setLabelId}
+                        onAssigneeChange={setAssigneeIds}
                     />
 
                     {/* ── Error ── */}

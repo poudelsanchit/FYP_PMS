@@ -1,8 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import { useDraggable } from '@dnd-kit/core'
 import { motion } from 'framer-motion'
-import { User2 } from 'lucide-react'
+import { cn } from '@/core/utils/utils'
+import { Avatar, AvatarImage, AvatarFallback } from '@/core/components/ui/avatar'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/core/components/ui/tooltip'
 import type { Issue } from '../types/types'
 
 interface IssueCardProps {
@@ -11,85 +14,138 @@ interface IssueCardProps {
   isDragOverlay?: boolean
 }
 
-const CardContent = ({ issue }: { issue: Issue }) => (
-  <div className="px-3 py-3">
-    {(issue.label || issue.priority) && (
-      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-        {issue.label && (
-          <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none"
-            style={{
-              backgroundColor: issue.label.color + '22',
-              color: issue.label.color,
-              border: `1px solid ${issue.label.color}44`,
-            }}
-          >
-            {issue.label.name}
-          </span>
-        )}
-        {issue.priority && (
-          <span
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none"
-            style={{
-              backgroundColor: issue.priority.color + '18',
-              color: issue.priority.color,
-              border: `1px solid ${issue.priority.color}33`,
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: issue.priority.color }}
-            />
-            {issue.priority.name}
-          </span>
-        )}
-      </div>
-    )}
-    <p className="text-sm font-medium leading-snug text-foreground line-clamp-3 mb-2">
-      {issue.title}
-    </p>
-    {issue.assignees && issue.assignees.length > 0 && (
-      <div className="flex items-center gap-1 mt-2">
-        <div className="flex -space-x-1.5">
-          {issue.assignees.slice(0, 3).map(a =>
-            a.user.avatar ? (
-              <img
-                key={a.userId}
-                src={a.user.avatar}
-                alt={a.user.name}
-                className="w-5 h-5 rounded-full border-2 border-card object-cover"
-                title={a.user.name}
-              />
-            ) : (
-              <div
-                key={a.userId}
-                className="w-5 h-5 rounded-full border-2 border-card bg-muted flex items-center justify-center"
-                title={a.user.name}
-              >
-                <span className="text-[8px] font-semibold text-muted-foreground uppercase">
+// ─── Assignee Avatars ─────────────────────────────────────────────────────────
+
+function AssigneeStack({ assignees }: { assignees: Issue['assignees'] }) {
+  if (!assignees || assignees.length === 0) return null
+
+  const visible = assignees.slice(0, 3)
+  const overflow = assignees.length - 3
+  const overflowAssignees = assignees.slice(3)
+
+  return (
+    <TooltipProvider>
+      <div className="flex -space-x-1.5">
+        {visible.map(a => (
+          <Tooltip key={a.userId}>
+            <TooltipTrigger asChild>
+              <Avatar className="h-5 w-5 border-[1.5px] border-card cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                <AvatarImage
+                  src={a.user.avatar ?? undefined}
+                  alt={a.user.name ?? ''}
+                />
+                <AvatarFallback className="text-[8px] font-semibold uppercase">
                   {a.user.name?.[0] ?? '?'}
+                </AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              {a.user.name ?? 'Unknown'}
+            </TooltipContent>
+          </Tooltip>
+        ))}
+        {overflow > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="h-5 w-5 rounded-full border-[1.5px] border-card bg-muted flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                <span className="text-[8px] font-medium text-muted-foreground leading-none">
+                  +{overflow}
                 </span>
               </div>
-            )
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              <div className="space-y-1">
+                {overflowAssignees.map(a => (
+                  <div key={a.userId}>{a.user.name ?? 'Unknown'}</div>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </TooltipProvider>
+  )
+}
+// ─── Label Chip ───────────────────────────────────────────────────────────────
+
+function LabelChip({ name, color }: { name: string; color: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-none border"
+      style={{
+        backgroundColor: `${color}18`,
+        color,
+        borderColor: `${color}30`,
+      }}
+    >
+      {name}
+    </span>
+  )
+}
+
+// ─── Priority Chip ────────────────────────────────────────────────────────────
+
+function PriorityChip({ name, color }: { name: string; color: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-none border"
+      style={{
+        backgroundColor: `${color}18`,
+        color,
+        borderColor: `${color}30`,
+      }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      {name}
+    </span>
+  )
+}
+
+// ─── Card Content ─────────────────────────────────────────────────────────────
+
+function CardContent({ issue }: { issue: Issue }) {
+  const hasChips = issue.label || issue.priority
+  const hasAssignees = issue.assignees && issue.assignees.length > 0
+
+  return (
+    <div className="flex flex-col gap-2.5 p-3">
+
+      {/* Chips row */}
+      {hasChips && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {issue.label && (
+            <LabelChip name={issue.label.name} color={issue.label.color} />
           )}
-          {issue.assignees.length > 3 && (
-            <div className="w-5 h-5 rounded-full border-2 border-card bg-muted flex items-center justify-center">
-              <span className="text-[8px] font-medium text-muted-foreground">
-                +{issue.assignees.length - 3}
-              </span>
-            </div>
+          {issue.priority && (
+            <PriorityChip name={issue.priority.name} color={issue.priority.color} />
           )}
         </div>
+      )}
+
+      {/* Title */}
+      <p className="text-sm font-medium leading-snug text-foreground line-clamp-2">
+        {issue.title}
+      </p>
+
+      {/* Footer: assignees */}
+      <div className="flex items-center justify-between pt-0.5">
+        {hasAssignees ? (
+          <AssigneeStack assignees={issue.assignees} />
+        ) : (
+          <span className="text-[10px] text-muted-foreground/40 select-none">
+            Unassigned
+          </span>
+        )}
       </div>
-    )}
-    {(!issue.assignees || issue.assignees.length === 0) && (
-      <div className="flex items-center gap-1 mt-1">
-        <User2 className="w-3 h-3 text-muted-foreground/30" />
-        <span className="text-[10px] text-muted-foreground/40">Unassigned</span>
-      </div>
-    )}
-  </div>
-)
+
+    </div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function IssueCard({ issue, onClick, isDragOverlay = false }: IssueCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -99,9 +155,7 @@ export function IssueCard({ issue, onClick, isDragOverlay = false }: IssueCardPr
 
   if (isDragOverlay) {
     return (
-      <div
-        className="group relative rounded-sm border bg-card text-card-foreground shadow-2xl rotate-[1.5deg] scale-[1.03] cursor-grabbing select-none"
-      >
+      <div className="rounded-lg border border-border bg-card shadow-xl rotate-1 scale-[1.02] cursor-grabbing select-none opacity-95">
         <CardContent issue={issue} />
       </div>
     )
@@ -114,23 +168,22 @@ export function IssueCard({ issue, onClick, isDragOverlay = false }: IssueCardPr
       {...listeners}
       layout="position"
       initial={false}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{
-        layout: { duration: 0.2, ease: 'easeOut' },
-      }}
-      // KEY FIX: Use CSS visibility instead of animating opacity.
-      // visibility:hidden keeps the element in the layout (preserves the gap/placeholder)
-      // but makes it invisible. It flips instantly — no async animation state involved.
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ layout: { duration: 0.18, ease: 'easeOut' } }}
       style={{
         visibility: isDragging ? 'hidden' : 'visible',
-        zIndex: isDragging ? 1000 : undefined,
       }}
-      className={[
-        'group relative rounded-xs border bg-card text-card-foreground',
-        'shadow-sm hover:shadow-md transition-shadow duration-200',
-        'select-none cursor-grab active:cursor-grabbing',
-      ].join(' ')}
       onClick={isDragging ? undefined : onClick}
+      className={cn(
+        // Base
+        'group relative rounded-lg border border-border bg-card',
+        // Subtle left accent on hover using a pseudo-like approach
+        'transition-all duration-150',
+        // Hover
+        'hover:border-border/80 hover:shadow-sm hover:bg-accent/30',
+        // Cursor
+        'select-none cursor-grab active:cursor-grabbing',
+      )}
     >
       <CardContent issue={issue} />
     </motion.div>

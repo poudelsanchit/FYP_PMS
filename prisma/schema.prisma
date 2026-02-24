@@ -22,12 +22,6 @@ enum BoardType {
   KANBAN
 }
 
-enum BoardRole {
-  BOARD_LEAD
-  BOARD_MEMBER
-  BOARD_VIEWER
-}
-
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -41,7 +35,6 @@ model User {
   projects            Project[]
   projectMembers      ProjectMember[]
   projectInvitations  ProjectInvitation[]
-  boardMembers        BoardMember[]
   issueAssignees      IssueAssignee[]
 
   @@map("users")
@@ -170,25 +163,9 @@ model Board {
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   columns      Column[]
-  members      BoardMember[]
 
   @@index([projectId])
   @@index([organizationId])
-}
-
-model BoardMember {
-  id       String    @id @default(uuid())
-  boardId  String
-  userId   String
-  role     BoardRole
-  joinedAt DateTime  @default(now())
-
-  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([boardId, userId])
-  @@index([boardId])
-  @@index([userId])
 }
 
 model Column {

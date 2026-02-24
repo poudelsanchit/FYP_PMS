@@ -9,12 +9,12 @@ export type BoardAccessResult =
       ok: true;
       userId: string;
       orgMember: { role: string };
-      boardMember: { role: string } | null;
+      projectMember: { role: string };
     }
   | { ok: false; response: ErrResponse };
 
 /**
- * Validates auth + org membership + board existence in one parallel query.
+ * Validates auth + org membership + project membership + board existence in one parallel query.
  * Every board route calls this instead of repeating the same checks.
  */
 export async function resolveBoardAccess(
@@ -26,7 +26,7 @@ export async function resolveBoardAccess(
   const userId = await getAuthUserId(req);
   if (!userId) return { ok: false, response: err("Unauthorized", 401) };
 
-  const [orgMember, board, boardMember] = await Promise.all([
+  const [orgMember, board, projectMember] = await Promise.all([
     prisma.organizationMember.findUnique({
       where: { userId_organizationId: { userId, organizationId: orgId } },
     }),
@@ -34,21 +34,22 @@ export async function resolveBoardAccess(
       where: { id: boardId, projectId, organizationId: orgId },
       select: { id: true },
     }),
-    prisma.boardMember.findUnique({
-      where: { boardId_userId: { boardId, userId } },
+    prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
     }),
   ]);
 
   if (!orgMember) return { ok: false, response: err("Forbidden", 403) };
   if (!board) return { ok: false, response: err("Board not found", 404) };
+  if (!projectMember) return { ok: false, response: err("Forbidden: not a project member", 403) };
 
-  return { ok: true, userId, orgMember, boardMember };
+  return { ok: true, userId, orgMember, projectMember };
 }
 
-/** BOARD_LEAD or ORG_ADMIN can manage the board */
+/** PROJECT_LEAD or ORG_ADMIN can manage the board */
 export function canManageBoard(
   orgMember: { role: string },
-  boardMember: { role: string } | null
+  projectMember: { role: string }
 ): boolean {
-  return orgMember.role === "ORG_ADMIN" || boardMember?.role === "BOARD_LEAD";
+  return orgMember.role === "ORG_ADMIN" || projectMember.role === "PROJECT_LEAD";
 }

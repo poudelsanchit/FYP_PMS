@@ -73,12 +73,6 @@ export async function POST(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (
-    access.boardMember?.role === "BOARD_VIEWER" &&
-    access.orgMember.role !== "ORG_ADMIN"
-  )
-    return err("Forbidden: viewers cannot create issues", 403);
-
   const body = await req.json();
   const { title, columnId, description, labelId, priorityId, assigneeIds } =
     body;

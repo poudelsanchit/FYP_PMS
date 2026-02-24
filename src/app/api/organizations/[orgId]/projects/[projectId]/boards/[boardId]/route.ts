@@ -23,22 +23,12 @@ export async function GET(req: NextRequest, { params }: Context) {
 
   const { searchParams } = new URL(req.url);
   const includeColumns = searchParams.get("includeColumns") === "true";
-  const includeMembers = searchParams.get("includeMembers") === "true";
 
   const board = await prisma.board.findFirst({
     where: { id: boardId, projectId, organizationId: orgId },
     include: {
       ...(includeColumns && { columns: { orderBy: { order: "asc" } } }),
-      ...(includeMembers && {
-        members: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, avatar: true },
-            },
-          },
-        },
-      }),
-      _count: { select: { columns: true, members: true } },
+      _count: { select: { columns: true } },
     },
   });
 
@@ -51,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (!canManageBoard(access.orgMember, access.boardMember))
+  if (!canManageBoard(access.orgMember, access.projectMember))
     return err("Forbidden: insufficient role", 403);
 
   const body = await req.json();
@@ -71,7 +61,7 @@ export async function DELETE(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (!canManageBoard(access.orgMember, access.boardMember))
+  if (!canManageBoard(access.orgMember, access.projectMember))
     return err("Forbidden: insufficient role", 403);
 
   await prisma.board.delete({ where: { id: boardId } });

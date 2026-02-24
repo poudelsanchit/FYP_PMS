@@ -4,8 +4,8 @@
  *
  * POST body: { name: string, type?: "KANBAN" }
  *
- * Creating a board automatically seeds 5 default columns and adds
- * the creator as BOARD_LEAD.
+ * Creating a board automatically seeds 5 default columns.
+ * Access is controlled by project membership.
  */
 
 import { NextRequest } from "next/server";
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: Context) {
   const boards = await prisma.board.findMany({
     where: { projectId, organizationId: orgId },
     include: {
-      _count: { select: { columns: true, members: true } },
+      _count: { select: { columns: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -90,14 +90,10 @@ export async function POST(req: NextRequest, { params }: Context) {
       })),
     });
 
-    await tx.boardMember.create({
-      data: { boardId: created.id, userId, role: "BOARD_LEAD" },
-    });
-
     return tx.board.findUnique({
       where: { id: created.id },
       include: {
-        _count: { select: { columns: true, members: true } },
+        _count: { select: { columns: true } },
       },
     });
   });

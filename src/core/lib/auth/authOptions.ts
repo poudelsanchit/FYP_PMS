@@ -70,6 +70,14 @@ export const authOptions: NextAuthOptions = {
               },
             });
             isNewUser = true;
+          } else {
+            // Existing user with Google ID - update avatar if changed
+            if (higherResImage && higherResImage !== existingUser.avatar) {
+              await prisma.user.update({
+                where: { email },
+                data: { avatar: higherResImage },
+              });
+            }
           }
 
           // Send OTP only for new users

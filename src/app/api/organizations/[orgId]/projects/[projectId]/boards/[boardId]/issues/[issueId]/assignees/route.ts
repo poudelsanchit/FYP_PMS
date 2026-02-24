@@ -57,12 +57,6 @@ export async function POST(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (
-    access.boardMember?.role === "BOARD_VIEWER" &&
-    access.orgMember.role !== "ORG_ADMIN"
-  )
-    return err("Forbidden: viewers cannot assign users", 403);
-
   const issue = await getIssueOnBoard(issueId, boardId);
   if (!issue) return err("Issue not found", 404);
 
@@ -94,12 +88,6 @@ export async function DELETE(req: NextRequest, { params }: Context) {
   const { orgId, projectId, boardId, issueId } = await params;
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
-
-  if (
-    access.boardMember?.role === "BOARD_VIEWER" &&
-    access.orgMember.role !== "ORG_ADMIN"
-  )
-    return err("Forbidden: viewers cannot remove assignees", 403);
 
   const issue = await getIssueOnBoard(issueId, boardId);
   if (!issue) return err("Issue not found", 404);

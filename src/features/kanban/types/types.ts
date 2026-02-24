@@ -1,6 +1,6 @@
 export interface User {
   id: string
-  name: string
+  name: string | null
   email: string
   avatar: string | null
 }
@@ -56,7 +56,6 @@ export interface Board {
   projectId: string
   organizationId: string
   columns?: Column[]
-  members?: { user: User }[]
 }
 
 export interface DragItem {

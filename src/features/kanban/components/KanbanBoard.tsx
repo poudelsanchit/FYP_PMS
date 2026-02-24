@@ -18,9 +18,10 @@ import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
 import { IssueDetail } from './Issuedetail'
 import { AddColumn } from './AddColumn'
-import type { Issue, Column, Label, Priority } from '../types/types'
+import type { Issue, Column, Label, Priority, User } from '../types/types'
 import { Button } from '@/core/components/ui/button'
 import { CreateIssueModal } from '@/features/issue/components/Createissuemodal'
+import { useProjectMembers } from '@/features/projects/hooks/useProjectMembers'
 
 interface KanbanBoardProps {
     orgId: string
@@ -44,6 +45,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         setIssues,
     } = useIssues(orgId, projectId, boardId)
     const { createColumn, deleteColumn, renameColumn } = useColumns(orgId, projectId, boardId)
+    const { members: projectMembers } = useProjectMembers(orgId, projectId, canManage)
 
     // Local column state (synced from board initially)
     const [columns, setColumns] = useState<Column[]>([])
@@ -272,7 +274,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         )
     }
 
-    const members = board?.members?.map(m => m.user) ?? []
+    const members = projectMembers.map(pm => pm.user)
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
@@ -366,6 +368,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                 columns={columns}
                 labels={labels}
                 priorities={priorities}
+                members={members}
                 onClose={() => setCreateOpen(false)}
                 onCreate={createIssue}
             />

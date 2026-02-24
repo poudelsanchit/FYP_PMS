@@ -1,24 +1,31 @@
 'use client'
 
-import { UserCircle2, Tag, CalendarDays, AlertTriangle } from 'lucide-react'
+import { Tag, CalendarDays, AlertTriangle } from 'lucide-react'
 import { IssuePillSelect, type PillOption } from './Issuepillselect'
+import { AssigneeMultiSelect } from './AssigneeMultiSelect'
 
 interface IssueMetaBarProps {
     priorityId: string
     labelId: string
+    assigneeIds: string[]
     priorityOptions: PillOption[]
     labelOptions: PillOption[]
+    assigneeOptions: { id: string; name: string | null; email: string; avatar: string | null }[]
     onPriorityChange: (id: string) => void
     onLabelChange: (id: string) => void
+    onAssigneeChange: (ids: string[]) => void
 }
 
 export function IssueMetaBar({
     priorityId,
     labelId,
+    assigneeIds,
     priorityOptions,
     labelOptions,
+    assigneeOptions,
     onPriorityChange,
     onLabelChange,
+    onAssigneeChange,
 }: IssueMetaBarProps) {
     return (
         <div className="flex items-center gap-1.5 px-5 py-3 flex-wrap">
@@ -40,14 +47,12 @@ export function IssueMetaBar({
                 onChange={onLabelChange}
             />
 
-            {/* Assignee — extend with your own Popover/search */}
-            <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
-            >
-                <UserCircle2 className="h-3.5 w-3.5 opacity-60" />
-                Assignee
-            </button>
+            {/* Assignees */}
+            <AssigneeMultiSelect
+                selectedIds={assigneeIds}
+                members={assigneeOptions}
+                onSelectionChange={onAssigneeChange}
+            />
 
             {/* Due date — extend with your own date picker */}
             <button

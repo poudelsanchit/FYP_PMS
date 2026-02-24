@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   const access = await resolveBoardAccess(req, orgId, projectId, boardId);
   if (!access.ok) return access.response;
 
-  if (!canManageBoard(access.orgMember, access.boardMember))
+  if (!canManageBoard(access.orgMember, access.projectMember))
     return err("Forbidden: insufficient role", 403);
 
   const body = await req.json();
