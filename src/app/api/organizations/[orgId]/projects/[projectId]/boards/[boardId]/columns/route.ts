@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: Context) {
     return err("Forbidden: insufficient role", 403);
 
   const body = await req.json();
-  const { name, order } = body;
+  const { name, order, isCompleted = false } = body;
 
   if (!name?.trim()) return err("Column name is required");
 
@@ -60,8 +60,18 @@ export async function POST(req: NextRequest, { params }: Context) {
   if (conflict)
     return err(`A column at position ${resolvedOrder} already exists`);
 
-  const column = await prisma.column.create({
-    data: { boardId, name: name.trim(), order: resolvedOrder },
+  // If setting as terminal column, unset all other terminal columns in the board
+  const column = await prisma.$transaction(async (tx) => {
+    if (isCompleted) {
+      await tx.column.updateMany({
+        where: { boardId, isCompleted: true },
+        data: { isCompleted: false },
+      });
+    }
+
+    return tx.column.create({
+      data: { boardId, name: name.trim(), order: resolvedOrder, isCompleted },
+    });
   });
 
   return ok(column, 201);

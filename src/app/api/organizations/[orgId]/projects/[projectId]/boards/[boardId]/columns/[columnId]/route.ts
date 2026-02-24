@@ -38,19 +38,28 @@ export async function PATCH(req: NextRequest, { params }: Context) {
   if (!column) return err("Column not found", 404);
 
   const body = await req.json();
-  const { name, order } = body;
+  const { name, order, isCompleted } = body;
 
-  if (!name?.trim() && order === undefined)
-    return err("Provide at least name or order");
+  if (!name?.trim() && order === undefined && isCompleted === undefined)
+    return err("Provide at least name, order, or isCompleted");
 
   // Reorder: shift siblings to make room
   if (order !== undefined && order !== column.order) {
     const movingDown = order > column.order;
 
-    await prisma.$transaction([
+    await prisma.$transaction(async (tx) => {
+      // If setting as terminal column, unset all other terminal columns
+      if (isCompleted === true) {
+        await tx.column.updateMany({
+          where: { boardId, isCompleted: true, id: { not: columnId } },
+          data: { isCompleted: false },
+        });
+      }
+
       // Temporarily park the column at -1 to avoid unique constraint collision
-      prisma.column.update({ where: { id: columnId }, data: { order: -1 } }),
-      prisma.column.updateMany({
+      await tx.column.update({ where: { id: columnId }, data: { order: -1 } });
+      
+      await tx.column.updateMany({
         where: {
           boardId,
           order: movingDown
@@ -58,23 +67,39 @@ export async function PATCH(req: NextRequest, { params }: Context) {
             : { gte: order, lte: column.order - 1 },
         },
         data: { order: { increment: movingDown ? -1 : 1 } },
-      }),
-      prisma.column.update({
+      });
+      
+      await tx.column.update({
         where: { id: columnId },
         data: {
           order,
           ...(name?.trim() && { name: name.trim() }),
+          ...(isCompleted !== undefined && { isCompleted }),
         },
-      }),
-    ]);
+      });
+    });
 
     const updated = await prisma.column.findUnique({ where: { id: columnId } });
     return ok(updated);
   }
 
-  const updated = await prisma.column.update({
-    where: { id: columnId },
-    data: { ...(name?.trim() && { name: name.trim() }) },
+  // Update without reordering
+  const updated = await prisma.$transaction(async (tx) => {
+    // If setting as terminal column, unset all other terminal columns
+    if (isCompleted === true) {
+      await tx.column.updateMany({
+        where: { boardId, isCompleted: true, id: { not: columnId } },
+        data: { isCompleted: false },
+      });
+    }
+
+    return tx.column.update({
+      where: { id: columnId },
+      data: {
+        ...(name?.trim() && { name: name.trim() }),
+        ...(isCompleted !== undefined && { isCompleted }),
+      },
+    });
   });
 
   return ok(updated);

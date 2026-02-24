@@ -71,11 +71,12 @@ export async function PATCH(req: NextRequest, { params }: Context) {
   const body = await req.json();
   const { title, description, columnId, order, labelId, priorityId, dueDate } = body;
 
+  let targetColumn = null;
   if (columnId && columnId !== issue.columnId) {
-    const col = await prisma.column.findFirst({
+    targetColumn = await prisma.column.findFirst({
       where: { id: columnId, boardId },
     });
-    if (!col) return err("Target column not found on this board", 404);
+    if (!targetColumn) return err("Target column not found on this board", 404);
   }
   if (labelId) {
     const label = await prisma.projectLabel.findFirst({
@@ -102,6 +103,12 @@ export async function PATCH(req: NextRequest, { params }: Context) {
     resolvedOrder = (last?.order ?? -1) + 1;
   }
 
+  // Determine completedAt based on target column's isCompleted flag
+  let completedAt = undefined;
+  if (isMovingColumn && targetColumn) {
+    completedAt = targetColumn.isCompleted ? new Date() : null;
+  }
+
   const updated = await prisma.issue.update({
     where: { id: issueId },
     data: {
@@ -114,6 +121,7 @@ export async function PATCH(req: NextRequest, { params }: Context) {
       ...(labelId !== undefined && { labelId: labelId ?? null }),
       ...(priorityId !== undefined && { priorityId: priorityId ?? null }),
       ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+      ...(completedAt !== undefined && { completedAt }),
     },
     include: {
       label: true,

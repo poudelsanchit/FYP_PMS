@@ -46,7 +46,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         moveIssueOptimistic,
         setIssues,
     } = useIssues(orgId, projectId, boardId)
-    const { createColumn, deleteColumn, renameColumn } = useColumns(orgId, projectId, boardId)
+    const { createColumn, deleteColumn, renameColumn, toggleCompleted } = useColumns(orgId, projectId, boardId)
     const { members: projectMembers } = useProjectMembers(orgId, projectId, canManage)
     const { setSegments, clear } = useBreadcrumbStore()
 
@@ -195,9 +195,15 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         return map
     }, [issues, columns])
 
-    const handleAddColumn = async (name: string) => {
-        const col = await createColumn(name)
-        setColumns(prev => [...prev, col])
+    const handleAddColumn = async (name: string, isCompleted = false) => {
+        const col = await createColumn(name, isCompleted)
+        setColumns(prev => {
+            // If the new column is terminal, unset all other terminal columns
+            if (isCompleted) {
+                return [...prev.map(c => ({ ...c, isCompleted: false })), col]
+            }
+            return [...prev, col]
+        })
     }
 
     const handleDeleteColumn = async (columnId: string) => {
@@ -208,6 +214,17 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     const handleRenameColumn = async (columnId: string, name: string) => {
         await renameColumn(columnId, name)
         setColumns(prev => prev.map(c => c.id === columnId ? { ...c, name } : c))
+    }
+
+    const handleToggleCompleted = async (columnId: string, isCompleted: boolean) => {
+        const updated = await toggleCompleted(columnId, isCompleted)
+        setColumns(prev => prev.map(c => 
+            c.id === columnId 
+                ? { ...c, isCompleted } 
+                : c.isCompleted && isCompleted 
+                    ? { ...c, isCompleted: false } 
+                    : c
+        ))
     }
 
     const handleIssueClick = (issue: Issue) => {
@@ -285,6 +302,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                                         onAddIssue={(colId) => { setCreateColumnId(colId); setCreateOpen(true) }}
                                         onRename={handleRenameColumn}
                                         onDelete={handleDeleteColumn}
+                                        onToggleCompleted={handleToggleCompleted}
                                     />
                                 ))}
                             </AnimatePresence>

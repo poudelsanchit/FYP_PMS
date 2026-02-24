@@ -169,12 +169,13 @@ model Board {
 }
 
 model Column {
-  id        String   @id @default(uuid())
-  boardId   String
-  name      String
-  order     Int // Unique within board for ordering
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  boardId     String
+  name        String
+  order       Int // Unique within board for ordering
+  isCompleted Boolean  @default(false) // Terminal column - marks issues as completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
   issues Issue[]
@@ -192,6 +193,7 @@ model Issue {
   labelId     String?
   priorityId  String?
   dueDate     DateTime?
+  completedAt DateTime? // Set when moved to terminal column
   order       Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

@@ -5,20 +5,22 @@ import { motion } from 'framer-motion'
 import { Plus, Check, X } from 'lucide-react'
 
 interface AddColumnProps {
-  onAdd: (name: string) => Promise<void>
+  onAdd: (name: string, isCompleted?: boolean) => Promise<void>
 }
 
 export function AddColumn({ onAdd }: AddColumnProps) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
+  const [isCompleted, setIsCompleted] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleConfirm = async () => {
     if (!value.trim()) return
     setLoading(true)
     try {
-      await onAdd(value.trim())
+      await onAdd(value.trim(), isCompleted)
       setValue('')
+      setIsCompleted(false)
       setEditing(false)
     } finally {
       setLoading(false)
@@ -54,11 +56,23 @@ export function AddColumn({ onAdd }: AddColumnProps) {
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') handleConfirm()
-            if (e.key === 'Escape') { setEditing(false); setValue('') }
+            if (e.key === 'Escape') { setEditing(false); setValue(''); setIsCompleted(false) }
           }}
           placeholder="Column name"
           className="w-full text-sm font-medium bg-transparent outline-none text-foreground placeholder:text-muted-foreground/40 border-b border-primary/30 pb-1"
         />
+        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isCompleted}
+            onChange={e => setIsCompleted(e.target.checked)}
+            className="rounded border-border"
+          />
+          <span>Mark as completed column</span>
+        </label>
+        <p className="text-[10px] text-muted-foreground/60 leading-tight">
+          Issues moved into this column will be marked as completed
+        </p>
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleConfirm}
@@ -69,7 +83,7 @@ export function AddColumn({ onAdd }: AddColumnProps) {
             {loading ? 'Adding…' : 'Add'}
           </button>
           <button
-            onClick={() => { setEditing(false); setValue('') }}
+            onClick={() => { setEditing(false); setValue(''); setIsCompleted(false) }}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
           >
             <X className="h-3.5 w-3.5" />

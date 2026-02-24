@@ -168,13 +168,13 @@ export function useIssues(orgId: string, projectId: string, boardId: string) {
 // ── Columns ────────────────────────────────────────────────────────────────
 export function useColumns(orgId: string, projectId: string, boardId: string) {
   const createColumn = useCallback(
-    async (name: string) => {
+    async (name: string, isCompleted = false) => {
       const res = await window.fetch(
         `${BASE(orgId, projectId, boardId)}/columns`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, isCompleted }),
         },
       );
       const data = await res.json();
@@ -215,5 +215,22 @@ export function useColumns(orgId: string, projectId: string, boardId: string) {
     [orgId, projectId, boardId],
   );
 
-  return { createColumn, deleteColumn, renameColumn };
+  const toggleCompleted = useCallback(
+    async (columnId: string, isCompleted: boolean) => {
+      const res = await window.fetch(
+        `${BASE(orgId, projectId, boardId)}/columns/${columnId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isCompleted }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update column");
+      return data.data as Column;
+    },
+    [orgId, projectId, boardId],
+  );
+
+  return { createColumn, deleteColumn, renameColumn, toggleCompleted };
 }

@@ -87,6 +87,7 @@ export async function POST(req: NextRequest, { params }: Context) {
         boardId: created.id,
         name: colName,
         order: index,
+        isCompleted: colName === "Done", // Mark "Done" as terminal column
       })),
     });
 

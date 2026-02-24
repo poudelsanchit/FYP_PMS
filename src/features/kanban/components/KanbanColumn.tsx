@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, MoreHorizontal, Pencil, Trash2, X, Check } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, Trash2, X, Check, CheckCircle2 } from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +22,7 @@ interface KanbanColumnProps {
     onAddIssue: (columnId: string) => void
     onRename: (columnId: string, name: string) => void
     onDelete: (columnId: string) => void
+    onToggleCompleted: (columnId: string, isCompleted: boolean) => void
     isOver?: boolean
 }
 
@@ -33,6 +34,7 @@ export function KanbanColumn({
     onAddIssue,
     onRename,
     onDelete,
+    onToggleCompleted,
 }: KanbanColumnProps) {
     const [isRenaming, setIsRenaming] = useState(false)
     const [renameValue, setRenameValue] = useState(column.name)
@@ -90,6 +92,9 @@ export function KanbanColumn({
                 ) : (
                     <div className="flex items-center gap-2 min-w-0">
                         <h3 className="text-sm font-semibold text-foreground truncate">{column.name}</h3>
+                        {column.isCompleted && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" title="Completed column" />
+                        )}
                         <span className="shrink-0 text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full leading-none">
                             {issues.length}
                         </span>
@@ -116,6 +121,13 @@ export function KanbanColumn({
                                     <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onSelect={startRename}>
                                         <Pencil className="h-3.5 w-3.5" />
                                         Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                        className="gap-2 text-xs cursor-pointer" 
+                                        onSelect={() => onToggleCompleted(column.id, !column.isCompleted)}
+                                    >
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        {column.isCompleted ? 'Unmark as completed' : 'Set as completed column'}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem

@@ -37,6 +37,7 @@ export interface Issue {
   labelId: string | null
   priorityId: string | null
   dueDate: string | null
+  completedAt: string | null
   label: Label | null
   priority: Priority | null
   assignees: IssueAssignee[]
@@ -48,6 +49,7 @@ export interface Column {
   name: string
   boardId: string
   order: number
+  isCompleted: boolean
   _count?: { issues: number }
 }
 
