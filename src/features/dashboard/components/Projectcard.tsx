@@ -12,7 +12,14 @@ import {
     SelectValue,
 } from "@/core/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/core/components/ui/tooltip";
 import { ColumnsChart } from "./Columnschart";
+import { Users } from "lucide-react";
 
 // Color bars by position: first = orange, middle = blue, completed = green
 function getBarColor(isCompleted: boolean, order: number, total: number): string {
@@ -140,38 +147,43 @@ export function ProjectCard({
             {/* Footer: avatars + member count */}
             <div className="flex items-center justify-between pt-1 border-t border-border">
                 {/* Avatar stack */}
-                <div className="flex items-center">
-                    {visibleMembers.map((member, i) => (
-                        <Avatar
-                            key={member.id}
-                            className="w-6 h-6 border-2 border-card"
-                            style={{
-                                marginLeft: i === 0 ? 0 : "-6px",
-                                zIndex: visibleMembers.length - i,
-                            }}
-                        >
-                            <AvatarImage src={member.avatar ?? undefined} />
-                            <AvatarFallback className="text-[9px] bg-muted">
-                                {getInitials(member.name, member.email)}
-                            </AvatarFallback>
-                        </Avatar>
-                    ))}
-                    {extraCount > 0 && (
-                        <span
-                            className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[9px] text-muted-foreground font-medium"
-                            style={{ marginLeft: "-6px" }}
-                        >
-                            +{extraCount}
-                        </span>
-                    )}
-                </div>
+                <TooltipProvider>
+                    <div className="flex items-center">
+                        {visibleMembers.map((member, i) => (
+                            <Tooltip key={member.id}>
+                                <TooltipTrigger asChild>
+                                    <Avatar
+                                        className="w-6 h-6 border-2 border-card cursor-pointer"
+                                        style={{
+                                            marginLeft: i === 0 ? 0 : "-6px",
+                                            zIndex: visibleMembers.length - i,
+                                        }}
+                                    >
+                                        <AvatarImage src={member.avatar ?? undefined} />
+                                        <AvatarFallback className="text-[9px] bg-muted">
+                                            {getInitials(member.name, member.email)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{member.name || member.email}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        ))}
+                        {extraCount > 0 && (
+                            <span
+                                className="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[9px] text-muted-foreground font-medium"
+                                style={{ marginLeft: "-6px" }}
+                            >
+                                +{extraCount}
+                            </span>
+                        )}
+                    </div>
+                </TooltipProvider>
 
                 {/* Member count */}
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
-                    </svg>
+                    <Users size={12} />
                     {project.memberCount}
                 </div>
             </div>
