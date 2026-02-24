@@ -17,10 +17,10 @@ import { useBoard, useIssues, useColumns } from '../hooks/hooks'
 import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
 import { IssueDetail } from './Issuedetail'
-import { CreateIssueModal } from './CreateIssue'
 import { AddColumn } from './AddColumn'
 import type { Issue, Column, Label, Priority } from '../types/types'
 import { Button } from '@/core/components/ui/button'
+import { CreateIssueModal } from '@/features/issue/components/Createissuemodal'
 
 interface KanbanBoardProps {
     orgId: string
