@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Loader2, AlertCircle, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
+import clsx from 'clsx'
 import {
     SidebarMenuSubItem,
     SidebarMenuSubButton,
@@ -46,6 +48,7 @@ export function BoardsList({
 }: BoardsListProps) {
     const [deleteTarget, setDeleteTarget] = useState<Board | null>(null)
     const [renameTarget, setRenameTarget] = useState<Board | null>(null)
+    const pathname = usePathname()
 
     if (isLoading) {
         return (
@@ -79,16 +82,26 @@ export function BoardsList({
 
     return (
         <>
-            {boards.map((board) => (
-                <SidebarMenuSubItem key={board.id} className="group/board relative flex items-center">
-                    <SidebarMenuSubButton asChild className="flex-1 pr-7">
-                        <Link
-                            href={`/app/${orgId}/${projectId}/${board.id}`}
-                            className="flex items-center gap-2"
+            {boards.map((board) => {
+                const boardUrl = `/app/${orgId}/${projectId}/${board.id}`
+                const isActive = pathname?.startsWith(boardUrl)
+                
+                return (
+                    <SidebarMenuSubItem key={board.id} className="group/board relative flex items-center">
+                        <SidebarMenuSubButton 
+                            asChild 
+                            className={clsx(
+                                "flex-1 pr-7",
+                                isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            )}
                         >
-                            <span className="truncate">{board.name}</span>
-                        </Link>
-                    </SidebarMenuSubButton>
+                            <Link
+                                href={boardUrl}
+                                className="flex items-center gap-2"
+                            >
+                                <span className="truncate">{board.name}</span>
+                            </Link>
+                        </SidebarMenuSubButton>
 
                     {canCreate && (
                         <DropdownMenu>
@@ -129,7 +142,7 @@ export function BoardsList({
                         </DropdownMenu>
                     )}
                 </SidebarMenuSubItem>
-            ))}
+            )})}
 
             {deleteTarget && (
                 <DeleteBoardDialog

@@ -34,6 +34,18 @@ interface NavMainProps {
   tenantId?: string;
 }
 
+// Helper function to check if a nav item is active
+function isNavItemActive(pathname: string, itemUrl: string, itemTitle: string): boolean {
+  // Special case for Dashboard: treat /app and /app/[tenantId] as the same
+  if (itemTitle === "Dashboard") {
+    // Match exact /app/[tenantId] or just /app
+    const dashboardPattern = /^\/app(\/[^\/]+)?$/;
+    return dashboardPattern.test(pathname);
+  }
+
+  return pathname === itemUrl;
+}
+
 function NavItemRenderer({
   item,
   pathname,
@@ -45,9 +57,9 @@ function NavItemRenderer({
   router: ReturnType<typeof useRouter>;
   isSubItem?: boolean;
 }) {
-  const isActive = pathname === item.url;
+  const isActive = isNavItemActive(pathname, item.url, item.title);
   const hasSubItems = item.items && item.items.length > 0;
-  const isSubItemActive = hasSubItems && item.items?.some((subItem) => pathname.startsWith(subItem.url));
+  const isSubItemActive = hasSubItems && item.items?.some((subItem) => isNavItemActive(pathname, subItem.url, subItem.title));
 
   if (hasSubItems) {
     // For sub-items with children, return just the button without SidebarMenuItem wrapper
@@ -64,7 +76,7 @@ function NavItemRenderer({
               <SidebarMenuSubButton
                 className={clsx(
                   "cursor-pointer hover:bg-muted",
-                  (isActive || isSubItemActive) && "bg-accent text-black dark:text-white"
+                  (isActive || isSubItemActive) && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 )}
               >
                 <span>{item.title}</span>
@@ -104,7 +116,7 @@ function NavItemRenderer({
               tooltip={item.title}
               className={clsx(
                 "cursor-pointer hover:bg-muted",
-                (isActive || isSubItemActive) && "bg-accent text-black dark:text-white"
+                (isActive || isSubItemActive) && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
               )}
             >
               {item.icon && <item.icon />}
@@ -136,7 +148,7 @@ function NavItemRenderer({
       asChild
       className={clsx(
         "cursor-pointer hover:bg-muted",
-        isActive && "bg-accent text-black dark:text-white"
+        isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
       )}
     >
       <a onClick={() => router.push(item.url)}>
@@ -156,10 +168,10 @@ export function NavMain({ items, tenantId }: NavMainProps) {
       <SidebarGroupLabel>Main</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const isActive = pathname === item.url;
+          const isActive = isNavItemActive(pathname, item.url, item.title);
           const hasSubItems = item.items && item.items.length > 0;
-          const isSubItemActive = hasSubItems && item.items?.some((subItem) => pathname.startsWith(subItem.url));
-          
+          const isSubItemActive = hasSubItems && item.items?.some((subItem) => isNavItemActive(pathname, subItem.url, subItem.title));
+
           // Add inbox count badge
           const badge = item.title === "Inbox" && inboxCount > 0 ? inboxCount : item.badge;
 
@@ -177,14 +189,14 @@ export function NavMain({ items, tenantId }: NavMainProps) {
                       tooltip={item.title}
                       className={clsx(
                         "cursor-pointer hover:bg-muted",
-                        (isActive || isSubItemActive) && "bg-accent text-black dark:text-white"
+                        (isActive || isSubItemActive) && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       )}
                     >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
                       {badge && (
-                        <Badge 
-                          variant="default" 
+                        <Badge
+                          variant="default"
                           className="ml-auto h-5 min-w-5 px-1.5 text-xs"
                         >
                           {badge}
@@ -218,7 +230,7 @@ export function NavMain({ items, tenantId }: NavMainProps) {
                 tooltip={item.title}
                 className={clsx(
                   "cursor-pointer hover:bg-muted ",
-                  isActive && "bg-accent text-black dark:text-white"
+                  isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 )}
                 onClick={() => {
                   router.push(item.url);
@@ -227,8 +239,8 @@ export function NavMain({ items, tenantId }: NavMainProps) {
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
                 {badge && (
-                  <Badge 
-                    variant="default" 
+                  <Badge
+                    variant="default"
                     className="ml-auto h-5 min-w-5 px-1.5 text-xs"
                   >
                     {badge}

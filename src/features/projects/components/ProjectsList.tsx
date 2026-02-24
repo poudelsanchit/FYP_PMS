@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+import clsx from 'clsx'
 import {
     Plus, Loader2, AlertCircle, FolderKanban,
     MoreHorizontal, Users, Trash2, Settings, ChevronRight
@@ -75,6 +77,10 @@ function ProjectRow({
 }: ProjectRowProps) {
     const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false)
     const projectColor = project.color ?? '#3b82f6'
+    const pathname = usePathname()
+    
+    // Check if current path includes this project
+    const isActive = pathname?.includes(`/${project.id}`)
 
     return (
         <Collapsible open={isOpen} onOpenChange={onToggle}>
@@ -82,7 +88,10 @@ function ProjectRow({
                 <CollapsibleTrigger asChild>
                     <SidebarMenuButton
                         asChild
-                        className="group/item data-[state=open]:bg-accent/50"
+                        className={clsx(
+                            "group/item",
+                            isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        )}
                     >
                         <div className="flex items-center justify-around w-full cursor-pointer">
                             <div className='flex items-center gap-1.5'>
