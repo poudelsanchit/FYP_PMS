@@ -7,6 +7,7 @@ export interface ProjectPriority {
     name: string
     color: string
     order: number
+    projectId: string
 }
 
 export function useProjectPriorities(orgId: string, projectId: string) {

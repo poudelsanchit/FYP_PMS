@@ -92,16 +92,16 @@ export async function POST(req: NextRequest, { params }: Context) {
   if (!column) return err("Column not found on this board", 404);
 
   if (labelId) {
-    const label = await prisma.label.findFirst({
-      where: { id: labelId, boardId },
+    const label = await prisma.projectLabel.findFirst({
+      where: { id: labelId, projectId },
     });
-    if (!label) return err("Label not found on this board", 404);
+    if (!label) return err("Label not found in this project", 404);
   }
   if (priorityId) {
-    const priority = await prisma.priority.findFirst({
-      where: { id: priorityId, boardId },
+    const priority = await prisma.projectPriority.findFirst({
+      where: { id: priorityId, projectId },
     });
-    if (!priority) return err("Priority not found on this board", 404);
+    if (!priority) return err("Priority not found in this project", 404);
   }
 
   const lastIssue = await prisma.issue.findFirst({

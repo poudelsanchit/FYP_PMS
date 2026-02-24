@@ -9,7 +9,7 @@ export interface Label {
   id: string
   name: string
   color: string
-  boardId: string
+  projectId: string
 }
 
 export interface Priority {
@@ -17,7 +17,7 @@ export interface Priority {
   name: string
   color: string
   order: number
-  boardId: string
+  projectId: string
 }
 
 export interface IssueAssignee {
@@ -56,8 +56,6 @@ export interface Board {
   projectId: string
   organizationId: string
   columns?: Column[]
-  labels?: Label[]
-  priorities?: Priority[]
   members?: { user: User }[]
 }
 

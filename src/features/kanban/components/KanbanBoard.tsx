@@ -19,17 +19,19 @@ import { IssueCard } from './IssueCard'
 import { IssueDetail } from './Issuedetail'
 import { CreateIssueModal } from './CreateIssue'
 import { AddColumn } from './AddColumn'
-import type { Issue, Column } from '../types/types'
+import type { Issue, Column, Label, Priority } from '../types/types'
 import { Button } from '@/core/components/ui/button'
 
 interface KanbanBoardProps {
     orgId: string
     projectId: string
     boardId: string
+    labels: Label[]
+    priorities: Priority[]
     canManage?: boolean
 }
 
-export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: KanbanBoardProps) {
+export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, canManage = true }: KanbanBoardProps) {
     const { board, loading: boardLoading, error: boardError } = useBoard(orgId, projectId, boardId)
     const {
         issues,
@@ -188,32 +190,6 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
 
         if (!columnChanged && !orderChanged) return
 
-        // Log the entire board state after drop
-        console.log('=== KANBAN BOARD STATE AFTER DROP ===')
-        console.log('Columns:', columns.map(c => ({ id: c.id, name: c.name, order: c.order })))
-        console.log('Issues by Column:', 
-            columns.map(col => ({
-                columnId: col.id,
-                columnName: col.name,
-                issues: issues
-                    .filter(i => i.columnId === col.id)
-                    .sort((a, b) => a.order - b.order)
-                    .map(i => ({ 
-                        id: i.id, 
-                        title: i.title, 
-                        order: i.order,
-                        columnId: i.columnId 
-                    }))
-            }))
-        )
-        console.log('Moved Issue:', {
-            id: movedIssue.id,
-            title: movedIssue.title,
-            from: { columnId: originalColumnId, order: originalOrder },
-            to: { columnId: currentColumnId, order: currentOrder }
-        })
-        console.log('=====================================')
-
         try {
             const payload: { columnId?: string; order: number } = {
                 order: currentOrder,
@@ -269,33 +245,6 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
     const handleIssueUpdate = async (issueId: string, payload: Parameters<typeof updateIssue>[1]) => {
         const updated = await updateIssue(issueId, payload)
         setSelectedIssue(updated)
-        
-        // Log the entire board state after update
-        console.log('=== KANBAN BOARD STATE AFTER UPDATE ===')
-        console.log('Columns:', columns.map(c => ({ id: c.id, name: c.name, order: c.order })))
-        console.log('Issues by Column:', 
-            columns.map(col => ({
-                columnId: col.id,
-                columnName: col.name,
-                issues: issues
-                    .filter(i => i.columnId === col.id)
-                    .sort((a, b) => a.order - b.order)
-                    .map(i => ({ 
-                        id: i.id, 
-                        title: i.title, 
-                        order: i.order,
-                        columnId: i.columnId 
-                    }))
-            }))
-        )
-        console.log('Updated Issue:', {
-            id: updated.id,
-            title: updated.title,
-            columnId: updated.columnId,
-            order: updated.order,
-            payload
-        })
-        console.log('========================================')
     }
 
     const handleIssueDelete = async (issueId: string) => {
@@ -324,8 +273,6 @@ export function KanbanBoard({ orgId, projectId, boardId, canManage = true }: Kan
     }
 
     const members = board?.members?.map(m => m.user) ?? []
-    const labels = board?.labels ?? []
-    const priorities = board?.priorities ?? []
 
     return (
         <div className="flex flex-col h-full overflow-hidden">

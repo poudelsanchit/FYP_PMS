@@ -170,8 +170,6 @@ model Board {
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   columns      Column[]
-  labels       Label[]
-  priorities   Priority[]
   members      BoardMember[]
 
   @@index([projectId])
@@ -222,8 +220,8 @@ model Issue {
 
   project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   column    Column          @relation(fields: [columnId], references: [id], onDelete: Restrict)
-  label     Label?          @relation(fields: [labelId], references: [id], onDelete: SetNull)
-  priority  Priority?       @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+  label     ProjectLabel?   @relation(fields: [labelId], references: [id], onDelete: SetNull)
+  priority  ProjectPriority? @relation(fields: [priorityId], references: [id], onDelete: SetNull)
   assignees IssueAssignee[]
 
   @@index([projectId])
@@ -246,37 +244,6 @@ model IssueAssignee {
   @@index([userId])
 }
 
-model Label {
-  id        String   @id @default(uuid())
-  boardId   String
-  name      String // Unique within board
-  color     String? // Hex color code
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  issues Issue[]
-
-  @@unique([boardId, name])
-  @@index([boardId])
-}
-
-model Priority {
-  id        String   @id @default(uuid())
-  boardId   String
-  name      String // Unique within board
-  order     Int // For sorting
-  color     String? // Hex color code
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  issues Issue[]
-
-  @@unique([boardId, name])
-  @@index([boardId])
-}
-
 // Project-level Labels and Priorities
 model ProjectLabel {
   id        String   @id @default(uuid())
@@ -287,6 +254,7 @@ model ProjectLabel {
   updatedAt DateTime @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  Issue[]
 
   @@unique([projectId, name])
   @@index([projectId])
@@ -302,6 +270,7 @@ model ProjectPriority {
   updatedAt DateTime @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  Issue[]
 
   @@unique([projectId, name])
   @@index([projectId])

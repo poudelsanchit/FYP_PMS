@@ -24,8 +24,6 @@ export async function GET(req: NextRequest, { params }: Context) {
   const { searchParams } = new URL(req.url);
   const includeColumns = searchParams.get("includeColumns") === "true";
   const includeMembers = searchParams.get("includeMembers") === "true";
-  const includeLabels = searchParams.get("includeLabels") === "true";
-  const includePriorities = searchParams.get("includePriorities") === "true";
 
   const board = await prisma.board.findFirst({
     where: { id: boardId, projectId, organizationId: orgId },
@@ -40,8 +38,6 @@ export async function GET(req: NextRequest, { params }: Context) {
           },
         },
       }),
-      ...(includeLabels && { labels: true }),
-      ...(includePriorities && { priorities: { orderBy: { order: "asc" } } }),
       _count: { select: { columns: true, members: true } },
     },
   });
