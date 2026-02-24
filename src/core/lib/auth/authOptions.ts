@@ -102,21 +102,28 @@ export const authOptions: NextAuthOptions = {
           select: { id: true, email: true, isVerified: true }
         });
         
-        if (dbUser) {
-          token.userId = dbUser.id;
-          token.email = dbUser.email;
-          token.isVerified = dbUser.isVerified;
+        if (!dbUser) {
+          // User was deleted during login - throw error to invalidate session
+          throw new Error("User account no longer exists");
         }
+        
+        token.userId = dbUser.id;
+        token.email = dbUser.email;
+        token.isVerified = dbUser.isVerified;
       } else if (token.email) {
         // On every request: fetch dynamic fields from DB
         const dbUser = await prisma.user.findUnique({ 
           where: { email: token.email as string },
           select: { id: true, isVerified: true }
         });
-        if (dbUser) {
-          token.userId = dbUser.id;
-          token.isVerified = dbUser.isVerified;
+        
+        if (!dbUser) {
+          // User was deleted - throw error to force logout
+          throw new Error("User account no longer exists");
         }
+        
+        token.userId = dbUser.id;
+        token.isVerified = dbUser.isVerified;
       }
 
       return token;
