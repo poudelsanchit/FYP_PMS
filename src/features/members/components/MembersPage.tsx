@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/core/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 
 interface Member {
   id: string;
@@ -42,6 +43,12 @@ export function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { setSegments, clear } = useBreadcrumbStore();
+
+  useEffect(() => {
+    setSegments([{ label: "Members" }]);
+    return () => clear();
+  }, [setSegments, clear]);
 
   const fetchMembers = async () => {
     try {

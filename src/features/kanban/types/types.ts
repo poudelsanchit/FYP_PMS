@@ -56,6 +56,10 @@ export interface Board {
   projectId: string
   organizationId: string
   columns?: Column[]
+  project?: {
+    id: string
+    name: string
+  }
 }
 
 export interface DragItem {

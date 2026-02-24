@@ -23,11 +23,13 @@ export async function GET(req: NextRequest, { params }: Context) {
 
   const { searchParams } = new URL(req.url);
   const includeColumns = searchParams.get("includeColumns") === "true";
+  const includeProject = searchParams.get("includeProject") === "true";
 
   const board = await prisma.board.findFirst({
     where: { id: boardId, projectId, organizationId: orgId },
     include: {
       ...(includeColumns && { columns: { orderBy: { order: "asc" } } }),
+      ...(includeProject && { project: { select: { id: true, name: true } } }),
       _count: { select: { columns: true } },
     },
   });

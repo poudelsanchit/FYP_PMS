@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { cn } from "@/core/utils/utils";
 import { useOrganizationStore } from "@/core/stores/useOrganizationStore";
 import { triggerInboxRefresh } from "../hooks/useInboxRefresh";
+import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 
 interface OrganizationInvitation {
   id: string;
@@ -64,6 +65,12 @@ export function InboxPage({ tenantId }: { tenantId: string }) {
     useState<Invitation | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const { setSegments, clear } = useBreadcrumbStore();
+
+  useEffect(() => {
+    setSegments([{ label: "Inbox" }]);
+    return () => clear();
+  }, [setSegments, clear]);
 
   const fetchInvitations = React.useCallback(async (showLoading = false) => {
     try {

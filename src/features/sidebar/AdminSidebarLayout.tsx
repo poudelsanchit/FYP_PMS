@@ -1,5 +1,4 @@
 "use client";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/core/components/ui/breadcrumb";
 import {
@@ -12,44 +11,13 @@ import { useUserData } from "./hooks/useUserData";
 import { AppSidebar } from "./components/app-sidebar";
 import { IHeaderData, ISidebarLinks } from "./types/types";
 import { outfit } from "@/core/fonts/outfit";
-import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/core/components/theme/theme-toggle";
+import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 
 export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, tenantId, currentOrg, isLoadingOrg }: { children: React.ReactNode, sidebarLinks: ISidebarLinks, navHeaderData: IHeaderData, tenantId?: string, currentOrg?: { id: string; name: string; logo?: string; plan?: string; memberCount?: number }, isLoadingOrg?: boolean }) {
 
-    const pathname = usePathname();
     const userData = useUserData();
-    const [boardName, setBoardName] = useState<string | null>(null);
-
-    // Extract board ID from pathname if it's a board page
-    useEffect(() => {
-        const pathSegments = pathname.split("/").filter(Boolean);
-        const boardsIndex = pathSegments.indexOf("boards");
-
-        if (boardsIndex !== -1 && pathSegments[boardsIndex + 1]) {
-            const boardId = pathSegments[boardsIndex + 1];
-
-            // Fetch board name
-            const fetchBoardName = async () => {
-                try {
-                    // Use the org-specific API endpoint
-                    const response = await fetch(`/api/org/${tenantId}/boards/${boardId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setBoardName(data.data?.board?.name || null);
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch board name:", error);
-                }
-            };
-
-            if (tenantId) {
-                fetchBoardName();
-            }
-        } else {
-            setBoardName(null);
-        }
-    }, [pathname, tenantId]);
+    const segments = useBreadcrumbStore(state => state.segments);
 
     return (
         <SidebarProvider className={outfit.className}>
@@ -76,44 +44,25 @@ export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, t
                                         Home
                                     </Link>
                                 </BreadcrumbItem>
-                                {pathname !== "/admin" && (
-                                    <>
-                                        {pathname
-                                            .split("/")
-                                            .filter(Boolean)
-                                            .slice(1)
-                                            .filter(segment => segment !== tenantId)
-                                            .map((segment, index, arr) => {
-                                                const href = "/" + ["app", tenantId, ...arr.slice(0, index + 1)].join("/");
-                                                const isLast = index === arr.length - 1;
-
-                                                const isBoardId = segment.length === 24 && arr[index - 1] === "boards" && boardName;
-                                                const label = isBoardId
-                                                    ? boardName
-                                                    : segment
-                                                        .split("-")
-                                                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                                        .join(" ");
-
-                                                return (
-                                                    <div key={segment} className="flex items-center gap-2">
-                                                        <BreadcrumbSeparator className="hidden md:block" />
-                                                        <BreadcrumbItem>
-                                                            {isLast ? (
-                                                                <BreadcrumbLink className="dark:text-white text-black font-medium">
-                                                                    {label}
-                                                                </BreadcrumbLink>
-                                                            ) : (
-                                                                <Link href={href} className="hover:text-foreground">
-                                                                    {label}
-                                                                </Link>
-                                                            )}
-                                                        </BreadcrumbItem>
-                                                    </div>
-                                                );
-                                            })}
-                                    </>
-                                )}
+                                {segments.map((segment, index) => {
+                                    const isLast = index === segments.length - 1;
+                                    return (
+                                        <div key={`${segment.label}-${index}`} className="flex items-center gap-2">
+                                            <BreadcrumbSeparator className="hidden md:block" />
+                                            <BreadcrumbItem>
+                                                {isLast ? (
+                                                    <BreadcrumbLink className="dark:text-white text-black font-medium">
+                                                        {segment.label}
+                                                    </BreadcrumbLink>
+                                                ) : (
+                                                    <Link href={segment.href!} className="hover:text-foreground">
+                                                        {segment.label}
+                                                    </Link>
+                                                )}
+                                            </BreadcrumbItem>
+                                        </div>
+                                    );
+                                })}
                             </BreadcrumbList>
                         </Breadcrumb>
                     </div>

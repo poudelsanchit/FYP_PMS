@@ -16,7 +16,7 @@ export function useBoard(orgId: string, projectId: string, boardId: string) {
     setLoading(true);
     try {
       const res = await window.fetch(
-        `${BASE(orgId, projectId, boardId)}?includeColumns=true`,
+        `${BASE(orgId, projectId, boardId)}?includeColumns=true&includeProject=true`,
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load board");

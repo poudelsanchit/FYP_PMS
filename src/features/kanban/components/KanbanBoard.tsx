@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
     DndContext,
     DragOverlay,
@@ -18,10 +18,11 @@ import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
 import { IssueDetail } from './Issuedetail'
 import { AddColumn } from './AddColumn'
-import type { Issue, Column, Label, Priority, User } from '../types/types'
+import type { Issue, Column, Label, Priority } from '../types/types'
 import { Button } from '@/core/components/ui/button'
 import { CreateIssueModal } from '@/features/issue/components/Createissuemodal'
 import { useProjectMembers } from '@/features/projects/hooks/useProjectMembers'
+import { useBreadcrumbStore } from '@/store/breadcrumb-store'
 
 interface KanbanBoardProps {
     orgId: string
@@ -46,6 +47,17 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     } = useIssues(orgId, projectId, boardId)
     const { createColumn, deleteColumn, renameColumn } = useColumns(orgId, projectId, boardId)
     const { members: projectMembers } = useProjectMembers(orgId, projectId, canManage)
+    const { setSegments, clear } = useBreadcrumbStore()
+
+    // Set breadcrumbs when board data is loaded
+    useEffect(() => {
+        if (!board || !board.project) return
+        setSegments([
+            { label: board.project.name, href: `/app/${orgId}/${projectId}` },
+            { label: board.name },
+        ])
+        return () => clear()
+    }, [board, orgId, projectId, setSegments, clear])
 
     // Local column state (synced from board initially)
     const [columns, setColumns] = useState<Column[]>([])
