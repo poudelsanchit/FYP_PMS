@@ -1,9 +1,17 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { UserCircle2, X, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { UserCircle2, X, Check, Search } from 'lucide-react'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/core/components/ui/popover'
+import { cn } from '@/core/utils/utils'
 
-interface Member {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface AssigneeMember {
     id: string
     name: string | null
     email: string
@@ -12,164 +20,181 @@ interface Member {
 
 interface AssigneeMultiSelectProps {
     selectedIds: string[]
-    members: Member[]
+    members: AssigneeMember[]
     onSelectionChange: (ids: string[]) => void
 }
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+function MemberAvatar({ member, size = 5 }: { member: AssigneeMember; size?: number }) {
+    const sizeClass = `h-${size} w-${size}`
+    if (member.avatar) {
+        return (
+            <img
+                src={member.avatar}
+                alt={member.name ?? ''}
+                className={cn(sizeClass, 'rounded-full object-cover shrink-0')}
+            />
+        )
+    }
+    return (
+        <div className={cn(sizeClass, 'rounded-full bg-muted border border-border flex items-center justify-center shrink-0')}>
+            <span className="text-[8px] font-semibold uppercase text-muted-foreground">
+                {member.name?.[0] ?? member.email[0]}
+            </span>
+        </div>
+    )
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function AssigneeMultiSelect({
     selectedIds,
     members,
     onSelectionChange,
 }: AssigneeMultiSelectProps) {
-    const [open, setOpen] = useState(false)
-    const [searchQuery, setSearchQuery] = useState('')
-    const containerRef = useRef<HTMLDivElement>(null)
-    const inputRef = useRef<HTMLInputElement>(null)
+    const [search, setSearch] = useState('')
 
     const selectedMembers = members.filter(m => selectedIds.includes(m.id))
-    const unselectedMembers = members.filter(m => !selectedIds.includes(m.id))
 
-    const filteredMembers = unselectedMembers.filter(m =>
-        (m.name?.toLowerCase() ?? '').includes(searchQuery.toLowerCase()) ||
-        m.email.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredMembers = members.filter(m => {
+        const q = search.toLowerCase()
+        return (
+            (m.name?.toLowerCase() ?? '').includes(q) ||
+            m.email.toLowerCase().includes(q)
+        )
+    })
 
-    const handleToggleMember = (memberId: string) => {
-        if (selectedIds.includes(memberId)) {
-            onSelectionChange(selectedIds.filter(id => id !== memberId))
-        } else {
-            onSelectionChange([...selectedIds, memberId])
-        }
-        // Keep dropdown open after selection
+    const toggle = (id: string) => {
+        onSelectionChange(
+            selectedIds.includes(id)
+                ? selectedIds.filter(i => i !== id)
+                : [...selectedIds, id]
+        )
     }
 
-    const handleRemoveMember = (memberId: string, e: React.MouseEvent) => {
+    const remove = (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
-        onSelectionChange(selectedIds.filter(id => id !== memberId))
+        onSelectionChange(selectedIds.filter(i => i !== id))
     }
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setOpen(false)
-            }
-        }
-
-        if (open) {
-            // Use a small delay to avoid immediate closure
-            const timer = setTimeout(() => {
-                document.addEventListener('mousedown', handleClickOutside)
-            }, 0)
-            setTimeout(() => inputRef.current?.focus(), 0)
-            return () => clearTimeout(timer)
-        }
-
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [open])
 
     return (
-        <div ref={containerRef} className="relative">
-            <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
-            >
-                <UserCircle2 className="h-3.5 w-3.5 opacity-60" />
-                <span>Members</span>
-                {selectedIds.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-xs font-semibold">
-                        {selectedIds.length}
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                >
+                    {/* Show stacked avatars if selected, otherwise icon */}
+                    {selectedMembers.length > 0 ? (
+                        <div className="flex -space-x-1.5 mr-0.5">
+                            {selectedMembers.slice(0, 3).map(m => (
+                                <MemberAvatar key={m.id} member={m} size={4} />
+                            ))}
+                        </div>
+                    ) : (
+                        <UserCircle2 className="h-3.5 w-3.5 opacity-60" />
+                    )}
+
+                    <span>
+                        {selectedMembers.length > 0
+                            ? selectedMembers.length === 1
+                                ? (selectedMembers[0].name ?? selectedMembers[0].email.split('@')[0])
+                                : `${selectedMembers.length} assignees`
+                            : 'Assignee'
+                        }
                     </span>
-                )}
-                <ChevronDown className={`h-3.5 w-3.5 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`} />
-            </button>
+                </button>
+            </PopoverTrigger>
 
-            {open && (
-                <>
-                    {/* Backdrop */}
-                    <div 
-                        className="fixed inset-0 z-40"
-                        onClick={() => setOpen(false)}
+            <PopoverContent
+                align="start"
+                sideOffset={6}
+                className="w-72 p-0 rounded-lg shadow-lg overflow-hidden"
+            >
+                {/* ── Search ── */}
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
+                    <Search className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+                    <input
+                        autoFocus
+                        type="text"
+                        placeholder="Search members…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
                     />
+                    {search && (
+                        <button type="button" onClick={() => setSearch('')}>
+                            <X className="h-3 w-3 text-muted-foreground/50 hover:text-foreground transition-colors" />
+                        </button>
+                    )}
+                </div>
 
-                    {/* Dropdown */}
-                    <div className="absolute top-full left-0 mt-2 w-80 bg-background border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-                        {/* Search input */}
-                        <div className="p-3 border-b border-border/50">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                placeholder="Search members..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full px-3 py-2 text-xs bg-muted/50 border border-border/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            />
-                        </div>
-
-                        {/* Selected members */}
-                        {selectedMembers.length > 0 && (
-                            <>
-                                <div className="px-3 py-2 border-b border-border/50">
-                                    <div className="text-xs font-semibold text-muted-foreground mb-2">Selected</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedMembers.map(member => (
-                                            <div
-                                                key={member.id}
-                                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium"
-                                            >
-                                                {member.avatar && (
-                                                    <img src={member.avatar} alt="" className="h-4 w-4 rounded-full" />
-                                                )}
-                                                {!member.avatar && <UserCircle2 className="h-4 w-4" />}
-                                                <span className="max-w-[120px] truncate">{member.name || member.email.split('@')[0]}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => handleRemoveMember(member.id, e)}
-                                                    className="ml-1 hover:opacity-70 transition-opacity"
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {/* Available members */}
-                        <div className="max-h-64 overflow-y-auto">
-                            {filteredMembers.length > 0 ? (
-                                filteredMembers.map(member => (
-                                    <button
-                                        key={member.id}
-                                        type="button"
-                                        onClick={() => handleToggleMember(member.id)}
-                                        className="w-full text-left px-3 py-2.5 hover:bg-muted transition-colors flex items-center gap-3 border-b border-border/30 last:border-b-0"
-                                    >
-                                        {member.avatar && (
-                                            <img src={member.avatar} alt="" className="h-5 w-5 rounded-full shrink-0" />
-                                        )}
-                                        {!member.avatar && <UserCircle2 className="h-5 w-5 shrink-0 text-muted-foreground" />}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-xs font-medium truncate">{member.name || member.email}</div>
-                                            {member.name && <div className="text-xs text-muted-foreground truncate">{member.email}</div>}
-                                        </div>
-                                        <div className="h-4 w-4 rounded border border-border/60 shrink-0 flex items-center justify-center">
-                                            {selectedIds.includes(member.id) && (
-                                                <div className="h-3 w-3 rounded-sm bg-primary" />
-                                            )}
-                                        </div>
-                                    </button>
-                                ))
-                            ) : (
-                                <div className="px-3 py-8 text-center text-xs text-muted-foreground">
-                                    {searchQuery ? 'No members found' : 'All members selected'}
-                                </div>
-                            )}
-                        </div>
+                {/* ── Selected chips ── */}
+                {selectedMembers.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b border-border/50">
+                        {selectedMembers.map(m => (
+                            <span
+                                key={m.id}
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium bg-muted text-foreground border border-border/60"
+                            >
+                                <MemberAvatar member={m} size={3} />
+                                <span className="max-w-[100px] truncate">
+                                    {m.name ?? m.email.split('@')[0]}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={e => remove(m.id, e)}
+                                    className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <X className="h-2.5 w-2.5" />
+                                </button>
+                            </span>
+                        ))}
                     </div>
-                </>
-            )}
-        </div>
+                )}
+
+                {/* ── Member list ── */}
+                <div className="max-h-56 overflow-y-auto p-1">
+                    {filteredMembers.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-muted-foreground/50">
+                            {search ? 'No members found' : 'No members available'}
+                        </div>
+                    ) : (
+                        filteredMembers.map(member => {
+                            const isSelected = selectedIds.includes(member.id)
+                            return (
+                                <button
+                                    key={member.id}
+                                    type="button"
+                                    onClick={() => toggle(member.id)}
+                                    className={cn(
+                                        'w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs text-left transition-colors',
+                                        isSelected
+                                            ? 'bg-muted text-foreground'
+                                            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                                    )}
+                                >
+                                    <MemberAvatar member={member} size={5} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium truncate text-foreground">
+                                            {member.name ?? member.email.split('@')[0]}
+                                        </p>
+                                        {member.name && (
+                                            <p className="text-[10px] text-muted-foreground truncate">
+                                                {member.email}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {isSelected && (
+                                        <Check className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                    )}
+                                </button>
+                            )
+                        })
+                    )}
+                </div>
+            </PopoverContent>
+        </Popover>
     )
 }

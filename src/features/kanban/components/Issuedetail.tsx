@@ -1,9 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Trash2, Tag, AlertCircle, User2, ChevronDown } from 'lucide-react'
+import { X, Trash2, Tag, AlertTriangle, CalendarDays, ChevronDown, Check, Loader2 } from 'lucide-react'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/core/components/ui/popover'
+import { cn } from '@/core/utils/utils'
 import type { Issue, Label, Priority, User } from '../types/types'
+import { AssigneeMultiSelect } from '@/features/issue/components/AssigneeMultiSelect'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface IssueDetailProps {
     issue: Issue | null
@@ -23,6 +32,113 @@ interface IssueDetailProps {
     onRemoveAssignee: (issueId: string, userId: string) => Promise<void>
 }
 
+// ─── Pill Select (shadcn Popover) ─────────────────────────────────────────────
+
+interface PillOption { id: string; name: string; color?: string }
+
+function PillSelect({
+    value,
+    options,
+    placeholder,
+    icon,
+    onChange,
+}: {
+    value: string
+    options: PillOption[]
+    placeholder: string
+    icon: React.ReactNode
+    onChange: (id: string) => void
+}) {
+    const selected = options.find(o => o.id === value)
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                >
+                    {selected?.color ? (
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: selected.color }} />
+                    ) : (
+                        <span className="shrink-0 opacity-60">{icon}</span>
+                    )}
+                    <span>{selected?.name ?? placeholder}</span>
+                    <ChevronDown className="h-3 w-3 opacity-40" />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" sideOffset={6} className="w-44 p-1 rounded-lg shadow-lg">
+                {options.map(opt => (
+                    <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => onChange(opt.id)}
+                        className={cn(
+                            'w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs text-left transition-colors hover:bg-muted',
+                            value === opt.id ? 'text-foreground font-medium' : 'text-muted-foreground'
+                        )}
+                    >
+                        <span className="flex items-center gap-2">
+                            {opt.color && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: opt.color }} />}
+                            {opt.name}
+                        </span>
+                        {value === opt.id && <Check className="h-3 w-3 shrink-0" />}
+                    </button>
+                ))}
+            </PopoverContent>
+        </Popover>
+    )
+}
+
+// ─── Assignee Row ─────────────────────────────────────────────────────────────
+
+function AssigneeRow({
+    member,
+    assigned,
+    onToggle,
+}: {
+    member: User
+    assigned: boolean
+    onToggle: () => void
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            className={cn(
+                'flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-xs transition-all',
+                assigned
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            )}
+        >
+            {member.avatar ? (
+                <img src={member.avatar} alt={member.name ?? ''} className="w-5 h-5 rounded-full object-cover shrink-0" />
+            ) : (
+                <div className="w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
+                    <span className="text-[8px] font-semibold uppercase">{member.name?.[0] ?? '?'}</span>
+                </div>
+            )}
+            <span className="flex-1 text-left font-medium">{member.name}</span>
+            {assigned && (
+                <Check className="h-3 w-3 shrink-0 text-muted-foreground" />
+            )}
+        </button>
+    )
+}
+
+// ─── Section Label ────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">
+            {children}
+        </p>
+    )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export function IssueDetail({
     issue,
     labels,
@@ -39,6 +155,7 @@ export function IssueDetail({
     const [description, setDescription] = useState('')
     const [saving, setSaving] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
+    const titleRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() => {
         if (issue) {
@@ -47,6 +164,14 @@ export function IssueDetail({
             setConfirmDelete(false)
         }
     }, [issue])
+
+    // Auto-grow title textarea
+    useEffect(() => {
+        if (titleRef.current) {
+            titleRef.current.style.height = 'auto'
+            titleRef.current.style.height = `${titleRef.current.scrollHeight}px`
+        }
+    }, [title])
 
     if (!issue) return null
 
@@ -60,14 +185,6 @@ export function IssueDetail({
         }
     }
 
-    const handleLabelChange = async (labelId: string | null) => {
-        await onUpdate(issue.id, { labelId })
-    }
-
-    const handlePriorityChange = async (priorityId: string | null) => {
-        await onUpdate(issue.id, { priorityId })
-    }
-
     const handleDelete = async () => {
         if (!confirmDelete) { setConfirmDelete(true); return }
         await onDelete(issue.id)
@@ -76,227 +193,170 @@ export function IssueDetail({
 
     const assignedUserIds = new Set(issue.assignees?.map(a => a.userId) ?? [])
 
+    const labelOptions: PillOption[] = [
+        { id: '', name: 'No label' },
+        ...labels.map(l => ({ id: l.id, name: l.name, color: l.color })),
+    ]
+    const priorityOptions: PillOption[] = [
+        { id: '', name: 'No priority' },
+        ...priorities.map(p => ({ id: p.id, name: p.name, color: p.color })),
+    ]
+
     return (
         <AnimatePresence>
             {open && (
                 <>
-                    {/* Backdrop */}
+                    {/* ── Backdrop ── */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.18 }}
-                        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+                        transition={{ duration: 0.15 }}
+                        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]"
                         onClick={onClose}
                     />
 
-                    {/* Panel */}
+                    {/* ── Side panel ── */}
                     <motion.div
-                        initial={{ opacity: 0, x: 40, scale: 0.98 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: 40, scale: 0.98 }}
+                        initial={{ opacity: 0, x: 32 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 32 }}
                         transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-                        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-background border-l border-border shadow-2xl flex flex-col overflow-hidden"
+                        className="fixed right-0 top-0 bottom-0 z-50 flex flex-col w-full max-w-[480px] bg-card border-l border-border/80 shadow-2xl overflow-hidden"
                     >
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-                            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Issue</span>
-                            <div className="flex items-center gap-2">
+
+                        {/* ── Top bar (mirrors CreateIssueModal header) ── */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+                            <span className="text-[11px] font-mono text-muted-foreground/50 uppercase tracking-widest select-none">
+                                Edit issue
+                            </span>
+                            <div className="flex items-center gap-1">
+                                {/* Delete */}
                                 <button
+                                    type="button"
                                     onClick={handleDelete}
-                                    className={[
-                                        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                    className={cn(
+                                        'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all',
                                         confirmDelete
                                             ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                            : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10',
-                                    ].join(' ')}
+                                            : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+                                    )}
                                 >
                                     <Trash2 className="h-3.5 w-3.5" />
-                                    {confirmDelete ? 'Confirm delete' : 'Delete'}
+                                    {confirmDelete ? 'Confirm?' : 'Delete'}
                                 </button>
-                                <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
-                                    <X className="h-4 w-4" />
+                                {/* Close */}
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                >
+                                    <X className="h-3.5 w-3.5" />
                                 </button>
                             </div>
                         </div>
 
+                        {/* ── Scrollable body ── */}
                         <div className="flex-1 overflow-y-auto">
-                            <div className="p-5 space-y-5">
-                                {/* Title */}
-                                <div>
-                                    <textarea
-                                        value={title}
-                                        onChange={e => setTitle(e.target.value)}
-                                        onBlur={handleSave}
-                                        className="w-full text-xl font-semibold text-foreground bg-transparent resize-none outline-none border-0 p-0 leading-snug placeholder:text-muted-foreground/40 focus:ring-0"
-                                        placeholder="Issue title"
-                                        rows={2}
-                                    />
-                                </div>
 
-                                {/* Meta row */}
-                                <div className="flex flex-wrap gap-2">
-                                    {/* Label selector */}
-                                    <Selector
-                                        icon={<Tag className="h-3 w-3" />}
-                                        label={issue.label?.name ?? 'Label'}
-                                        color={issue.label?.color}
-                                        options={[
-                                            { id: '', name: 'No label', color: undefined },
-                                            ...labels.map(l => ({ id: l.id, name: l.name, color: l.color })),
-                                        ]}
-                                        value={issue.labelId ?? ''}
-                                        onChange={(v) => handleLabelChange(v || null)}
-                                    />
-
-                                    {/* Priority selector */}
-                                    <Selector
-                                        icon={<AlertCircle className="h-3 w-3" />}
-                                        label={issue.priority?.name ?? 'Priority'}
-                                        color={issue.priority?.color}
-                                        options={[
-                                            { id: '', name: 'No priority', color: undefined },
-                                            ...priorities.map(p => ({ id: p.id, name: p.name, color: p.color })),
-                                        ]}
-                                        value={issue.priorityId ?? ''}
-                                        onChange={(v) => handlePriorityChange(v || null)}
-                                    />
-                                </div>
-
-                                {/* Description */}
-                                <div>
-                                    <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">Description</label>
-                                    <textarea
-                                        value={description}
-                                        onChange={e => setDescription(e.target.value)}
-                                        onBlur={handleSave}
-                                        className="w-full min-h-[140px] text-sm text-foreground bg-muted/40 border border-border/60 rounded-xl resize-none p-3 outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder:text-muted-foreground/40"
-                                        placeholder="Add a description…"
-                                    />
-                                </div>
-
-                                {/* Assignees */}
-                                <div>
-                                    <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Assignees</label>
-                                    <div className="space-y-1.5">
-                                        {members.map(member => {
-                                            const assigned = assignedUserIds.has(member.id)
-                                            return (
-                                                <button
-                                                    key={member.id}
-                                                    onClick={() => assigned
-                                                        ? onRemoveAssignee(issue.id, member.id)
-                                                        : onAddAssignee(issue.id, member.id)
-                                                    }
-                                                    className={[
-                                                        'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-all',
-                                                        assigned
-                                                            ? 'bg-primary/10 border border-primary/20 text-foreground'
-                                                            : 'hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-transparent',
-                                                    ].join(' ')}
-                                                >
-                                                    {member.avatar ? (
-                                                        <img src={member.avatar} alt={member.name} className="w-6 h-6 rounded-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                                                            <span className="text-[10px] font-semibold uppercase">{member.name?.[0] ?? '?'}</span>
-                                                        </div>
-                                                    )}
-                                                    <span className="font-medium text-xs flex-1 text-left">{member.name}</span>
-                                                    {assigned && (
-                                                        <span className="text-[10px] text-primary font-semibold">Assigned</span>
-                                                    )}
-                                                </button>
-                                            )
-                                        })}
-                                        {members.length === 0 && (
-                                            <p className="text-xs text-muted-foreground/50 italic px-1">No project members</p>
-                                        )}
-                                    </div>
-                                </div>
+                            {/* Title + description block (mirrors modal body) */}
+                            <div className="flex flex-col px-5 pt-4 pb-2 gap-3">
+                                <textarea
+                                    ref={titleRef}
+                                    value={title}
+                                    onChange={e => {
+                                        setTitle(e.target.value)
+                                        e.currentTarget.style.height = 'auto'
+                                        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`
+                                    }}
+                                    onBlur={handleSave}
+                                    placeholder="Issue title"
+                                    rows={1}
+                                    className="w-full resize-none overflow-hidden bg-transparent text-[1.05rem] font-semibold text-foreground placeholder:text-muted-foreground/35 focus:outline-none leading-snug"
+                                />
+                                <textarea
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    onBlur={handleSave}
+                                    placeholder="Add description… (type '/' for commands, '@' to mention)"
+                                    rows={5}
+                                    className="w-full resize-none bg-transparent text-sm text-foreground/80 placeholder:text-muted-foreground/30 focus:outline-none leading-relaxed"
+                                />
                             </div>
+
+                            {/* ── Meta pills (mirrors modal meta bar) ── */}
+                            <div className="flex items-center gap-1.5 px-5 py-3 flex-wrap">
+                                <PillSelect
+                                    value={issue.priorityId ?? ''}
+                                    options={priorityOptions}
+                                    placeholder="Priority"
+                                    icon={<AlertTriangle className="h-3.5 w-3.5" />}
+                                    onChange={v => onUpdate(issue.id, { priorityId: v || null })}
+                                />
+                                <PillSelect
+                                    value={issue.labelId ?? ''}
+                                    options={labelOptions}
+                                    placeholder="Label"
+                                    icon={<Tag className="h-3.5 w-3.5" />}
+                                    onChange={v => onUpdate(issue.id, { labelId: v || null })}
+                                />
+                                <AssigneeMultiSelect
+                                    selectedIds={issue.assignees?.map(a => a.userId) ?? []}
+                                    members={members}
+                                    onSelectionChange={async (newIds) => {
+                                        const currentIds = new Set(issue.assignees?.map(a => a.userId) ?? [])
+                                        const nextIds = new Set(newIds)
+                                        // Add new
+                                        for (const id of nextIds) {
+                                            if (!currentIds.has(id)) await onAddAssignee(issue.id, id)
+                                        }
+                                        // Remove removed
+                                        for (const id of currentIds) {
+                                            if (!nextIds.has(id)) await onRemoveAssignee(issue.id, id)
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                                >
+                                    <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                                    Due date
+                                </button>
+                            </div>
+
                         </div>
 
-                        {/* Save button */}
-                        <div className="px-5 py-3 border-t border-border shrink-0">
+                        {/* ── Footer (mirrors modal footer) ── */}
+                        <div className="h-px bg-border/50 mx-5 shrink-0" />
+                        <div className="flex items-center justify-end gap-2 px-5 py-3 shrink-0">
                             <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
                                 onClick={handleSave}
                                 disabled={saving || !title.trim()}
-                                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                             >
-                                {saving ? 'Saving…' : 'Save changes'}
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Saving…
+                                    </>
+                                ) : (
+                                    'Save changes'
+                                )}
                             </button>
                         </div>
+
                     </motion.div>
                 </>
             )}
         </AnimatePresence>
-    )
-}
-
-// ── Reusable dropdown selector ──────────────────────────────────────────────
-interface SelectorOption { id: string; name: string; color?: string }
-interface SelectorProps {
-    icon: React.ReactNode
-    label: string
-    color?: string
-    options: SelectorOption[]
-    value: string
-    onChange: (id: string) => void
-}
-
-function Selector({ icon, label, color, options, value, onChange }: SelectorProps) {
-    const [open, setOpen] = useState(false)
-
-    return (
-        <div className="relative">
-            <button
-                onClick={() => setOpen(v => !v)}
-                className={[
-                    'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium',
-                    'border transition-all hover:bg-muted/60',
-                    color ? 'border-transparent' : 'border-border/60 text-muted-foreground',
-                ].join(' ')}
-                style={color ? {
-                    backgroundColor: color + '18',
-                    color,
-                    borderColor: color + '33',
-                } : undefined}
-            >
-                {color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
-                {!color && icon}
-                {label}
-                <ChevronDown className="h-2.5 w-2.5 opacity-60" />
-            </button>
-
-            <AnimatePresence>
-                {open && (
-                    <>
-                        <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-                        <motion.div
-                            initial={{ opacity: 0, y: -4, scale: 0.97 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                            transition={{ duration: 0.12 }}
-                            className="absolute left-0 top-full mt-1 z-20 w-44 bg-popover border border-border rounded-xl shadow-xl overflow-hidden"
-                        >
-                            {options.map(opt => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => { onChange(opt.id); setOpen(false) }}
-                                    className={[
-                                        'flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted/60 transition-colors text-left',
-                                        opt.id === value ? 'bg-muted/40 font-medium' : 'text-muted-foreground',
-                                    ].join(' ')}
-                                >
-                                    {opt.color && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: opt.color }} />}
-                                    {opt.name}
-                                </button>
-                            ))}
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-        </div>
     )
 }

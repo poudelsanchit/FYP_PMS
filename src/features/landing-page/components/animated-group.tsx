@@ -14,7 +14,6 @@ export type AnimatedGroupProps = {
     }
     preset?: PresetType
     as?: React.ElementType
-    asChild?: React.ElementType
 }
 
 const defaultContainerVariants: Variants = {
@@ -90,7 +89,7 @@ const addDefaultVariants = (variants: Variants) => ({
     visible: { ...defaultItemVariants.visible, ...variants.visible },
 })
 
-function AnimatedGroup({ children, className, variants, preset, as = 'div', asChild = 'div' }: AnimatedGroupProps) {
+function AnimatedGroup({ children, className, variants, preset, as = 'div' }: Omit<AnimatedGroupProps, 'asChild'>) {
     const selectedVariants = {
         item: addDefaultVariants(preset ? presetVariants[preset] : {}),
         container: addDefaultVariants(defaultContainerVariants),
@@ -100,7 +99,20 @@ function AnimatedGroup({ children, className, variants, preset, as = 'div', asCh
 
     const MotionComponent = motion(as)
 
-    const MotionChild = motion(asChild)
+    const childArray = React.Children.toArray(children);
+
+    // If there's only one child, don't wrap it in a motion.div
+    if (childArray.length === 1) {
+        return (
+            <MotionComponent
+                initial="hidden"
+                animate="visible"
+                variants={containerVariants}
+                className={className}>
+                {children}
+            </MotionComponent>
+        )
+    }
 
     return (
         <MotionComponent
@@ -108,12 +120,12 @@ function AnimatedGroup({ children, className, variants, preset, as = 'div', asCh
             animate="visible"
             variants={containerVariants}
             className={className}>
-            {React.Children.map(children, (child, index) => (
-                <MotionChild
+            {childArray.map((child, index) => (
+                <motion.div
                     key={index}
                     variants={itemVariants}>
                     {child}
-                </MotionChild>
+                </motion.div>
             ))}
         </MotionComponent>
     )

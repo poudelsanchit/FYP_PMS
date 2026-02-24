@@ -2,7 +2,7 @@
 
 import { Tag, CalendarDays, AlertTriangle } from 'lucide-react'
 import { IssuePillSelect, type PillOption } from './Issuepillselect'
-import { AssigneeMultiSelect } from './AssigneeMultiSelect'
+import { AssigneeMultiSelect, type AssigneeMember } from './AssigneeMultiSelect'
 
 interface IssueMetaBarProps {
     priorityId: string
@@ -10,10 +10,10 @@ interface IssueMetaBarProps {
     assigneeIds: string[]
     priorityOptions: PillOption[]
     labelOptions: PillOption[]
-    assigneeOptions: { id: string; name: string | null; email: string; avatar: string | null }[]
+    members: AssigneeMember[]
     onPriorityChange: (id: string) => void
     onLabelChange: (id: string) => void
-    onAssigneeChange: (ids: string[]) => void
+    onAssigneesChange: (ids: string[]) => void
 }
 
 export function IssueMetaBar({
@@ -22,14 +22,13 @@ export function IssueMetaBar({
     assigneeIds,
     priorityOptions,
     labelOptions,
-    assigneeOptions,
+    members,
     onPriorityChange,
     onLabelChange,
-    onAssigneeChange,
+    onAssigneesChange,
 }: IssueMetaBarProps) {
     return (
         <div className="flex items-center gap-1.5 px-5 py-3 flex-wrap">
-            {/* Priority */}
             <IssuePillSelect
                 value={priorityId}
                 options={priorityOptions}
@@ -37,8 +36,6 @@ export function IssueMetaBar({
                 icon={<AlertTriangle className="h-3.5 w-3.5" />}
                 onChange={onPriorityChange}
             />
-
-            {/* Label */}
             <IssuePillSelect
                 value={labelId}
                 options={labelOptions}
@@ -46,15 +43,11 @@ export function IssueMetaBar({
                 icon={<Tag className="h-3.5 w-3.5" />}
                 onChange={onLabelChange}
             />
-
-            {/* Assignees */}
             <AssigneeMultiSelect
                 selectedIds={assigneeIds}
-                members={assigneeOptions}
-                onSelectionChange={onAssigneeChange}
+                members={members}
+                onSelectionChange={onAssigneesChange}
             />
-
-            {/* Due date — extend with your own date picker */}
             <button
                 type="button"
                 className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"

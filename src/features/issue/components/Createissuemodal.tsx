@@ -175,10 +175,10 @@ export function CreateIssueModal({
                         assigneeIds={assigneeIds}
                         priorityOptions={priorityOptions}
                         labelOptions={labelOptions}
-                        assigneeOptions={members}
+                        members={members}
                         onPriorityChange={setPriorityId}
                         onLabelChange={setLabelId}
-                        onAssigneeChange={setAssigneeIds}
+                        onAssigneesChange={setAssigneeIds}
                     />
 
                     {/* ── Error ── */}

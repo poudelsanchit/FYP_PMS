@@ -96,17 +96,18 @@ export default function HeroSection() {
                                 </Link>
                             </Button>
                         </div>
-                        <Button
-                            key={2}
-                            asChild
-                            size="lg"
-                            variant="secondary"
-                            className=" rounded-sm px-5 dark:text-white text-black "
-                        >
-                            <Link href="#link">
-                                <span className="text-nowrap">Request a demo</span>
-                            </Link>
-                        </Button>
+                        <div key={2}>
+                            <Button
+                                asChild
+                                size="lg"
+                                variant="secondary"
+                                className=" rounded-sm px-5 dark:text-white text-black "
+                            >
+                                <Link href="#link">
+                                    <span className="text-nowrap">Request a demo</span>
+                                </Link>
+                            </Button>
+                        </div>
                     </AnimatedGroup>
                 </div>
             </div>

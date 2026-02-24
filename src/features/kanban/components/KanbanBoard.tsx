@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
     DndContext,
     DragOverlay,
@@ -16,7 +17,6 @@ import { Loader2, AlertCircle, Plus, LayoutGrid } from 'lucide-react'
 import { useBoard, useIssues, useColumns } from '../hooks/hooks'
 import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
-import { IssueDetail } from './Issuedetail'
 import { AddColumn } from './AddColumn'
 import type { Issue, Column, Label, Priority } from '../types/types'
 import { Button } from '@/core/components/ui/button'
@@ -34,6 +34,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, canManage = true }: KanbanBoardProps) {
+    const router = useRouter()
     const { board, loading: boardLoading, error: boardError } = useBoard(orgId, projectId, boardId)
     const {
         issues,
@@ -74,50 +75,8 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     const [dragStartPosition, setDragStartPosition] = useState<{ columnId: string; order: number } | null>(null)
 
     // UI state
-    const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
-    const [detailOpen, setDetailOpen] = useState(false)
     const [createOpen, setCreateOpen] = useState(false)
     const [createColumnId, setCreateColumnId] = useState<string | null>(null)
-
-    // Assignee management via API
-    const handleAddAssignee = useCallback(async (issueId: string, userId: string) => {
-        const res = await fetch(
-            `/api/organizations/${orgId}/projects/${projectId}/boards/${boardId}/issues/${issueId}/assignees`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId }),
-            }
-        )
-        if (!res.ok) throw new Error('Failed to add assignee')
-        // Refresh the selected issue
-        const issueRes = await fetch(
-            `/api/organizations/${orgId}/projects/${projectId}/boards/${boardId}/issues/${issueId}`
-        )
-        const data = await issueRes.json()
-        const updated = data.data as Issue
-        setIssues(prev => prev.map(i => i.id === issueId ? updated : i))
-        setSelectedIssue(updated)
-    }, [orgId, projectId, boardId, setIssues])
-
-    const handleRemoveAssignee = useCallback(async (issueId: string, userId: string) => {
-        const res = await fetch(
-            `/api/organizations/${orgId}/projects/${projectId}/boards/${boardId}/issues/${issueId}/assignees`,
-            {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId }),
-            }
-        )
-        if (!res.ok) throw new Error('Failed to remove assignee')
-        const issueRes = await fetch(
-            `/api/organizations/${orgId}/projects/${projectId}/boards/${boardId}/issues/${issueId}`
-        )
-        const data = await issueRes.json()
-        const updated = data.data as Issue
-        setIssues(prev => prev.map(i => i.id === issueId ? updated : i))
-        setSelectedIssue(updated)
-    }, [orgId, projectId, boardId, setIssues])
 
     // DnD sensors — require 8px movement to start drag
     const sensors = useSensors(
@@ -252,19 +211,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     }
 
     const handleIssueClick = (issue: Issue) => {
-        setSelectedIssue(issue)
-        setDetailOpen(true)
-    }
-
-    const handleIssueUpdate = async (issueId: string, payload: Parameters<typeof updateIssue>[1]) => {
-        const updated = await updateIssue(issueId, payload)
-        setSelectedIssue(updated)
-    }
-
-    const handleIssueDelete = async (issueId: string) => {
-        await deleteIssue(issueId)
-        setDetailOpen(false)
-        setSelectedIssue(null)
+        router.push(`/app/${orgId}/${projectId}/${boardId}/${issue.id}`)
     }
 
     // Loading / error states
@@ -358,20 +305,6 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                     </DndContext>
                 </div>
             </div>
-
-            {/* Issue detail panel */}
-            <IssueDetail
-                issue={selectedIssue}
-                open={detailOpen}
-                labels={labels}
-                priorities={priorities}
-                members={members}
-                onClose={() => { setDetailOpen(false); setSelectedIssue(null) }}
-                onUpdate={handleIssueUpdate}
-                onDelete={handleIssueDelete}
-                onAddAssignee={handleAddAssignee}
-                onRemoveAssignee={handleRemoveAssignee}
-            />
 
             {/* Create issue modal */}
             <CreateIssueModal

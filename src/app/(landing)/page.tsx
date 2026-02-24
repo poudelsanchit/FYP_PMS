@@ -1,3 +1,4 @@
+"use client";
 import Contact from "@/features/landing-page/contact-us/components/Contact";
 import Faqs from "@/features/landing-page/faqs/components/Faqs";
 import FeaturesPage from "@/features/landing-page/features-page/components/FeaturesPage";
