@@ -26,9 +26,9 @@ export function MeetingRoomCard({ room, onJoinClick, onEnterClick, onLeaveClick 
     return (
         <div
             className={`
-                group relative bg-card border rounded-xl p-5 flex flex-col gap-4 transition-all duration-200
+                group relative bg-card border border-border rounded-sm p-5 flex flex-col gap-4 transition-all duration-200
                 ${room.isActive
-                    ? "border-border hover:border-primary/30 hover:shadow-md cursor-pointer"
+                    ? "border-border hover:border-primary/30  cursor-pointer"
                     : "border-border/50 opacity-60 cursor-default"
                 }
                 ${room.hasJoined ? "ring-1 ring-primary/20" : ""}
@@ -39,10 +39,7 @@ export function MeetingRoomCard({ room, onJoinClick, onEnterClick, onLeaveClick 
                 else onJoinClick(room);
             }}
         >
-            {/* Joined indicator strip */}
-            {room.hasJoined && room.isActive && (
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded-t-xl" />
-            )}
+
 
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
@@ -79,8 +76,8 @@ export function MeetingRoomCard({ room, onJoinClick, onEnterClick, onLeaveClick 
                     ) : isScheduled ? (
                         <Badge variant="outline" className="text-xs">Scheduled</Badge>
                     ) : (
-                        <Badge variant="outline" className="text-xs border-green-500/30 text-green-600 dark:text-green-400">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" />
+                        <Badge variant="outline" className="text-xs border-green-700/30 text-green-600 dark:text-green-400 px-4">
+                            <div className="w-[5px] h-[5px] rounded-full bg-green-700  animate-pulse" />
                             Live
                         </Badge>
                     )}
@@ -145,9 +142,8 @@ export function MeetingRoomCard({ room, onJoinClick, onEnterClick, onLeaveClick 
                         </div>
                     ) : (
                         <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs gap-1.5 group-hover:border-primary/40 group-hover:text-primary group-hover:bg-primary/5"
+                            size="lg"
+                            className="h-7 text-xs gap-1.5 rounded-sm "
                             onClick={() => onJoinClick(room)}
                         >
                             <Lock className="w-3 h-3" />
