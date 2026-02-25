@@ -1,0 +1,33 @@
+# livekit.yaml — place this next to docker-compose.yml
+
+port: 7880
+bind_addresses:
+  - ""
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  use_external_ip: true      # required when running inside Docker
+  enable_loopback_candidate: false
+
+redis:
+  address: redis:6379
+
+# Keys are loaded from LIVEKIT_KEYS env var in docker-compose
+# Format:  api_key: api_secret
+# keys:
+#   devkey: devsecret
+
+logging:
+  level: info
+  json: false
+
+# TURN server (helps users behind strict firewalls)
+# Uncomment and fill in for production
+# turn:
+#   enabled: true
+#   domain: turn.yourdomain.com
+#   tls_port: 5349
+#   udp_port: 3478
+#   external_tls: true

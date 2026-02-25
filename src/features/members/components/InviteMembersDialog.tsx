@@ -198,7 +198,7 @@ export function InviteMembersDialog({
                     ? "Enter email addresses (comma or space separated)"
                     : "Add more..."
                 }
-                className="flex-1 min-w-[200px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-7"
+                className="flex-1 min-w-[200px] shadow-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-7"
               />
             </div>
             <p className="text-xs text-muted-foreground">

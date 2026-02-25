@@ -8,11 +8,20 @@ import { Plus, Video } from "lucide-react";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { MeetingRoom } from "../types/meeting.types";
 import { useMeetings } from "../hooks/useMeeting";
-import { RoomLobby } from "./room-lobby";
 import { Button } from "@/core/components/ui/button";
 import { MeetingRoomCard } from "./meeting-room-card";
 import { CreateRoomDialog } from "./create-room";
 import { JoinRoomDialog } from "./join-room";
+import { RoomLobby } from "./room-lobby";
+import { VideoConference } from "./video-conference";
+
+type Stage = "list" | "lobby" | "conference";
+
+interface ConferenceState {
+    token: string;
+    wsUrl: string;
+    isHost: boolean;
+}
 
 function CardSkeleton() {
     return (
@@ -47,42 +56,83 @@ export default function Meetings() {
     const params = useParams();
     const tenantId = params?.tenantId as string;
 
-    const { rooms, isLoading, error, createRoom, joinRoom, leaveRoom } = useMeetings(tenantId);
+    const { rooms, isLoading, error, createRoom, joinRoom, leaveRoom, refetch } = useMeetings(tenantId);
+
+    const [stage, setStage] = useState<Stage>("list");
+    const [activeRoom, setActiveRoom] = useState<MeetingRoom | null>(null);
+    const [conference, setConference] = useState<ConferenceState | null>(null);
 
     const [showCreate, setShowCreate] = useState(false);
     const [joinTarget, setJoinTarget] = useState<MeetingRoom | null>(null);
-    const [activeRoom, setActiveRoom] = useState<MeetingRoom | null>(null);
 
     useEffect(() => {
-        if (activeRoom) {
-            setSegments([{ label: "Meetings", href: "#" }, { label: activeRoom.name }]);
+        if (stage === "conference" && activeRoom) {
+            setSegments([
+                { label: "Meetings", href: `/app/${tenantId}/meetings` }, 
+                { label: activeRoom.name, href: `/app/${tenantId}/meetings` }, 
+                { label: "In Meeting" }
+            ]);
+        } else if (stage === "lobby" && activeRoom) {
+            setSegments([
+                { label: "Meetings", href: `/app/${tenantId}/meetings` }, 
+                { label: activeRoom.name }
+            ]);
         } else {
             setSegments([{ label: "Meetings" }]);
         }
         return () => clear();
-    }, [setSegments, clear, activeRoom]);
+    }, [setSegments, clear, stage, activeRoom, tenantId]);
 
-    // If user is in a room lobby, show that view
-    if (activeRoom) {
+    // ── Stage: Conference (fullscreen takeover) ────────────────────────────────
+    if (stage === "conference" && activeRoom && conference) {
+        return (
+            <VideoConference
+                token={conference.token}
+                wsUrl={conference.wsUrl}
+                roomId={activeRoom.id}
+                orgId={tenantId}
+                isHost={conference.isHost}
+                roomName={activeRoom.name}
+                onLeave={async () => {
+                    // leave in DB too
+                    try { await leaveRoom(activeRoom.id); } catch { /* ignore */ }
+                    setConference(null);
+                    setActiveRoom(null);
+                    setStage("list");
+                    refetch();
+                }}
+            />
+        );
+    }
+
+    // ── Stage: Lobby (pre-join camera check) ──────────────────────────────────
+    if (stage === "lobby" && activeRoom) {
         return (
             <div className="p-6">
                 <RoomLobby
                     room={activeRoom}
+                    orgId={tenantId}
                     onLeave={async () => {
-                        await leaveRoom(activeRoom.id);
+                        try { await leaveRoom(activeRoom.id); } catch { /* ignore */ }
                         setActiveRoom(null);
+                        setStage("list");
+                        refetch();
+                    }}
+                    onEnterConference={(token, wsUrl, isHost) => {
+                        setConference({ token, wsUrl, isHost });
+                        setStage("conference");
                     }}
                 />
             </div>
         );
     }
 
+    // ── Stage: List ────────────────────────────────────────────────────────────
     const activeRooms = rooms.filter((r) => r.isActive);
     const endedRooms = rooms.filter((r) => !r.isActive);
 
     return (
         <div className="p-6 w-full">
-            {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Meetings</h1>
@@ -96,20 +146,17 @@ export default function Meetings() {
                 </Button>
             </div>
 
-            {/* Error */}
             {error && (
                 <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 mb-6">
                     {error}
                 </div>
             )}
 
-            {/* Active rooms */}
             {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
                 </div>
             ) : activeRooms.length === 0 && endedRooms.length === 0 ? (
-                // Empty state
                 <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
                     <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
                         <Video className="w-7 h-7 opacity-40" />
@@ -123,7 +170,6 @@ export default function Meetings() {
                 </div>
             ) : (
                 <div className="space-y-8">
-                    {/* Active */}
                     {activeRooms.length > 0 && (
                         <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
@@ -135,7 +181,7 @@ export default function Meetings() {
                                         key={room.id}
                                         room={room}
                                         onJoinClick={setJoinTarget}
-                                        onEnterClick={setActiveRoom}
+                                        onEnterClick={(r) => { setActiveRoom(r); setStage("lobby"); }}
                                         onLeaveClick={leaveRoom}
                                     />
                                 ))}
@@ -143,7 +189,6 @@ export default function Meetings() {
                         </div>
                     )}
 
-                    {/* Ended */}
                     {endedRooms.length > 0 && (
                         <div>
                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
@@ -155,7 +200,7 @@ export default function Meetings() {
                                         key={room.id}
                                         room={room}
                                         onJoinClick={setJoinTarget}
-                                        onEnterClick={setActiveRoom}
+                                        onEnterClick={(r) => { setActiveRoom(r); setStage("lobby"); }}
                                         onLeaveClick={leaveRoom}
                                     />
                                 ))}
@@ -165,7 +210,6 @@ export default function Meetings() {
                 </div>
             )}
 
-            {/* Dialogs */}
             <CreateRoomDialog
                 open={showCreate}
                 onClose={() => setShowCreate(false)}
@@ -177,11 +221,11 @@ export default function Meetings() {
                 onClose={() => setJoinTarget(null)}
                 onJoin={async (roomId, password) => {
                     await joinRoom(roomId, password);
-                    // After joining, find the room and enter the lobby
                     const room = rooms.find((r) => r.id === roomId);
                     if (room) {
                         setJoinTarget(null);
                         setActiveRoom({ ...room, hasJoined: true, participantCount: room.participantCount + 1 });
+                        setStage("lobby");
                     }
                 }}
             />
