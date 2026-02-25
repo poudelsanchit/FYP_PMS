@@ -17,7 +17,6 @@ enum ProjectRole {
   PROJECT_MEMBER
 }
 
-// Project Management Enums
 enum BoardType {
   KANBAN
 }
@@ -36,6 +35,8 @@ model User {
   projectMembers      ProjectMember[]
   projectInvitations  ProjectInvitation[]
   issueAssignees      IssueAssignee[]
+  meetingRooms        MeetingRoom[]         // NEW
+  meetingParticipants MeetingParticipant[]  // NEW
 
   @@map("users")
 }
@@ -52,15 +53,16 @@ model OTP {
 }
 
 model Organization {
-  id          String                   @id @default(uuid())
-  name        String
-  isActive    Boolean                  @default(true)
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  invitations OrganizationInvitation[]
-  members     OrganizationMember[]
-  projects    Project[]
-  boards      Board[]
+  id           String                   @id @default(uuid())
+  name         String
+  isActive     Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  invitations  OrganizationInvitation[]
+  members      OrganizationMember[]
+  projects     Project[]
+  boards       Board[]
+  meetingRooms MeetingRoom[]            // NEW
 }
 
 model OrganizationMember {
@@ -98,9 +100,9 @@ model Project {
   id             String   @id @default(uuid())
   organizationId String
   name           String
-  key            String // Unique within organization, 2-10 alphanumeric chars
+  key            String
   description    String?
-  color          String?  @default("#3b82f6") // Hex color code, defaults to blue
+  color          String?  @default("#3b82f6")
   createdById    String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -139,11 +141,10 @@ model ProjectInvitation {
   acceptedAt DateTime?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+  projectId  String?
 
   project Project? @relation(fields: [projectId], references: [id])
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  projectId String?
 
   @@unique([projectId, userId])
   @@index([projectId])
@@ -154,14 +155,14 @@ model ProjectInvitation {
 model Board {
   id             String    @id @default(uuid())
   projectId      String
-  organizationId String // Denormalized for query efficiency
+  organizationId String
   name           String
   type           BoardType @default(KANBAN)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   columns      Column[]
 
   @@index([projectId])
@@ -172,8 +173,8 @@ model Column {
   id          String   @id @default(uuid())
   boardId     String
   name        String
-  order       Int // Unique within board for ordering
-  isCompleted Boolean  @default(false) // Terminal column - marks issues as completed
+  order       Int
+  isCompleted Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -193,14 +194,14 @@ model Issue {
   labelId     String?
   priorityId  String?
   dueDate     DateTime?
-  completedAt DateTime? // Set when moved to terminal column
+  completedAt DateTime?
   order       Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  column    Column          @relation(fields: [columnId], references: [id], onDelete: Restrict)
-  label     ProjectLabel?   @relation(fields: [labelId], references: [id], onDelete: SetNull)
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  column    Column           @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  label     ProjectLabel?    @relation(fields: [labelId], references: [id], onDelete: SetNull)
   priority  ProjectPriority? @relation(fields: [priorityId], references: [id], onDelete: SetNull)
   assignees IssueAssignee[]
 
@@ -224,12 +225,11 @@ model IssueAssignee {
   @@index([userId])
 }
 
-// Project-level Labels and Priorities
 model ProjectLabel {
   id        String   @id @default(uuid())
   projectId String
-  name      String // Unique within project
-  color     String // Hex color code (required for project labels)
+  name      String
+  color     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -243,9 +243,9 @@ model ProjectLabel {
 model ProjectPriority {
   id        String   @id @default(uuid())
   projectId String
-  name      String // Unique within project
-  order     Int // For sorting
-  color     String // Hex color code (required for project priorities)
+  name      String
+  order     Int
+  color     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -254,4 +254,41 @@ model ProjectPriority {
 
   @@unique([projectId, name])
   @@index([projectId])
+}
+
+// ─── Meeting Rooms ────────────────────────────────────────────────────────────
+
+model MeetingRoom {
+  id             String    @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  password       String    // bcrypt hashed — never returned in API responses
+  createdById    String
+  isActive       Boolean   @default(true)
+  scheduledAt    DateTime? // optional: for scheduling future meetings
+  endedAt        DateTime? // set when room is closed
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  participants MeetingParticipant[]
+
+  @@index([organizationId])
+  @@index([createdById])
+}
+
+model MeetingParticipant {
+  id       String   @id @default(uuid())
+  roomId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  room MeetingRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
 }
