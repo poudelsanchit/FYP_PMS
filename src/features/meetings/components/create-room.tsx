@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
     Dialog, DialogContent, DialogHeader,
     DialogTitle, DialogDescription,
@@ -22,13 +23,14 @@ export function CreateRoomDialog({ open, onClose, onCreate }: Props) {
     const [form, setForm] = useState({ name: "", description: "", password: "", scheduledAt: "" });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!form.name.trim() || !form.password.trim()) return;
+        if (!form.name.trim() || !form.password.trim()) {
+            toast.error("Room name and password are required.");
+            return;
+        }
         setIsLoading(true);
-        setError(null);
         try {
             await onCreate({
                 name: form.name.trim(),
@@ -37,10 +39,11 @@ export function CreateRoomDialog({ open, onClose, onCreate }: Props) {
                 scheduledAt: form.scheduledAt || undefined,
             });
             setForm({ name: "", description: "", password: "", scheduledAt: "" });
+            toast.success("Meeting room created successfully!");
             onClose();
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-            setError(msg || "Failed to create room");
+            toast.error(msg || "Failed to create room");
         } finally {
             setIsLoading(false);
         }
@@ -122,10 +125,6 @@ export function CreateRoomDialog({ open, onClose, onCreate }: Props) {
                             onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
                         />
                     </div>
-
-                    {error && (
-                        <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">{error}</p>
-                    )}
 
                     <div className="flex gap-2 pt-1">
                         <Button type="button" variant="outline" className="flex-1" onClick={onClose}>

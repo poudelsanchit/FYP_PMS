@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth"; // swap with your own auth helper
 import { authOptions } from "@/core/lib/auth/authOptions";
 import { canManageRooms, isOrgMember } from "@/core/lib/meetings/meetingAuth";
 import { prisma } from "@/core/lib/prisma/prisma";
+import { checkMeetingRoomsLimit } from "@/core/lib/billing/limits";
 
 type Params = { params: Promise<{ orgId: string }> };
 
@@ -91,6 +92,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!canCreate) {
       return NextResponse.json(
         { error: "Only ORG_ADMIN or PROJECT_LEAD can create meeting rooms" },
+        { status: 403 },
+      );
+    }
+
+    // Check meeting rooms limit
+    const limitCheck = await checkMeetingRoomsLimit(orgId);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: limitCheck.message || "Meeting rooms limit reached" },
         { status: 403 },
       );
     }

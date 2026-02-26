@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { FolderKanban, Loader2, Plus, Sparkles, Tag, Flag } from "lucide-react";
+import { toast } from "sonner";
 import {
     Dialog,
     DialogContent,
@@ -15,7 +16,6 @@ import { Label } from "@/core/components/ui/label";
 import { Textarea } from "@/core/components/ui/textarea";
 import { Switch } from "@/core/components/ui/switch";
 import { Separator } from "@/core/components/ui/separator";
-import { cn } from "@/core/utils/utils";
 import { ColorPicker } from "@/core/components/ui/color-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -172,7 +172,6 @@ export function CreateProject({
     const [includeLabels, setIncludeLabels] = useState(true);
     const [includePriorities, setIncludePriorities] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (!keyManuallyEdited && name) {
@@ -188,7 +187,6 @@ export function CreateProject({
         setKeyManuallyEdited(false);
         setIncludeLabels(true);
         setIncludePriorities(true);
-        setErrors({});
     }, []);
 
     const handleOpenChange = (val: boolean) => {
@@ -197,11 +195,15 @@ export function CreateProject({
     };
 
     const validate = (): boolean => {
-        const next: Record<string, string> = {};
-        if (!name.trim()) next.name = "Project name is required.";
-        if (!KEY_REGEX.test(key)) next.key = "2–10 uppercase letters or numbers.";
-        setErrors(next);
-        return Object.keys(next).length === 0;
+        if (!name.trim()) {
+            toast.error("Project name is required.");
+            return false;
+        }
+        if (!KEY_REGEX.test(key)) {
+            toast.error("Identifier must be 2–10 uppercase letters or numbers.");
+            return false;
+        }
+        return true;
     };
 
     const handleKeyChange = (val: string) => {
@@ -229,7 +231,7 @@ export function CreateProject({
             const json = await res.json();
 
             if (!res.ok || !json.success) {
-                setErrors({ form: json.error ?? "Something went wrong." });
+                toast.error(json.error ?? "Something went wrong.");
                 return;
             }
 
@@ -238,10 +240,11 @@ export function CreateProject({
                 seedDefaults(orgId!, json.data.id, includeLabels, includePriorities);
             }
 
+            toast.success("Project created successfully!");
             onSuccess?.(json.data);
             handleOpenChange(false);
         } catch {
-            setErrors({ form: "Network error. Please try again." });
+            toast.error("Network error. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -267,11 +270,6 @@ export function CreateProject({
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-                    {/* Global error */}
-                    {errors.form && (
-                        <p className="text-xs text-red-400">{errors.form}</p>
-                    )}
-
                     {/* Name */}
                     <div className="flex flex-col gap-1.5">
                         <Label htmlFor="project-name" className="text-xs font-medium">
@@ -282,16 +280,10 @@ export function CreateProject({
                             placeholder="e.g. Marketing Website"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className={cn(
-                                "h-12 px-4 text-sm rounded-lg border focus-visible:ring-1 transition-colors",
-                                errors.name && "border-destructive focus-visible:ring-destructive"
-                            )}
+                            className="h-12 px-4 text-sm rounded-lg border focus-visible:ring-1 transition-colors"
                             autoFocus
                             disabled={isLoading}
                         />
-                        {errors.name && (
-                            <p className="text-xs text-red-400">{errors.name}</p>
-                        )}
                     </div>
 
                     {/* Identifier */}
@@ -312,20 +304,13 @@ export function CreateProject({
                             placeholder="MKTG"
                             value={key}
                             onChange={(e) => handleKeyChange(e.target.value)}
-                            className={cn(
-                                "h-12 px-4 text-sm font-mono rounded-lg border focus-visible:ring-1 transition-colors",
-                                errors.key && "border-destructive focus-visible:ring-destructive"
-                            )}
+                            className="h-12 px-4 text-sm font-mono rounded-lg border focus-visible:ring-1 transition-colors"
                             maxLength={10}
                             disabled={isLoading}
                         />
-                        {errors.key ? (
-                            <p className="text-xs text-red-400">{errors.key}</p>
-                        ) : (
-                            <p className="text-[11px] text-muted-foreground">
-                                Used as a prefix for all issues in this project.
-                            </p>
-                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                            Used as a prefix for all issues in this project.
+                        </p>
                     </div>
 
                     {/* Description */}
