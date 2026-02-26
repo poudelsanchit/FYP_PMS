@@ -4,3 +4,7 @@
 - Waiting Room like meet ( Join Requests)
 - add a simple payment gateway to change the free organization to paid organization and add restrictions on how many projects we can make as per our tier
 - also implement activity log functionality
+
+
+ docker-compose down -v
+docker-compose up     
