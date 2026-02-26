@@ -7,7 +7,7 @@ import { ProjectCard } from "@/features/dashboard/components/Projectcard";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { CreateProject } from "@/features/projects/components/CreateProject";
 import { Button } from "@/core/components/ui/button";
-import { Plus } from "lucide-react";
+import { Folder, FolderKanban, Kanban, Plus } from "lucide-react";
 
 function CardSkeleton() {
     return (
@@ -79,10 +79,7 @@ export default function OrganizationPage() {
                     Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
                 ) : projects.length === 0 ? (
                     <div className="col-span-full flex flex-col items-center justify-center py-24 text-muted-foreground">
-                        <svg className="w-10 h-10 mb-3 opacity-25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                        </svg>
+                        <FolderKanban />
                         <p className="text-sm font-medium">No projects yet</p>
                         <p className="text-xs mt-1">Create your first project to get started.</p>
                     </div>

@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import clsx from 'clsx'
 import {
     Plus, Loader2, AlertCircle, FolderKanban,
-    MoreHorizontal, Users, Trash2, Settings, ChevronRight
+    MoreHorizontal, Users, Trash2, Settings, ChevronRight, FileText
 } from 'lucide-react'
 import {
     SidebarGroup,
@@ -14,6 +15,8 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
 } from '@/core/components/ui/sidebar'
 import {
     DropdownMenu,
@@ -170,6 +173,24 @@ function ProjectRow({
 
                 <CollapsibleContent>
                     <SidebarMenuSub>
+                        {/* Docs Link */}
+                        <SidebarMenuSubItem>
+                            <SidebarMenuSubButton 
+                                asChild 
+                                className={clsx(
+                                    pathname?.includes(`/${project.id}/docs`) && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                )}
+                            >
+                                <Link
+                                    href={`/app/${orgId}/${project.id}/docs`}
+                                    className="flex items-center gap-2"
+                                >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    <span>Docs</span>
+                                </Link>
+                            </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+
                         <BoardsList
                             orgId={orgId}
                             projectId={project.id}
