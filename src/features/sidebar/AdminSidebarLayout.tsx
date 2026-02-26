@@ -29,8 +29,8 @@ export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, t
                 currentOrg={currentOrg}
                 isLoadingOrg={isLoadingOrg}
             />
-            <SidebarInset className="overflow-x-hidden">
-                <header className="flex border-b h-12 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sticky top-0 bg-background z-10">
+            <SidebarInset className="flex flex-col h-screen overflow-hidden">
+                <header className="flex border-b h-12 shrink-0 items-center justify-between gap-2 bg-background z-50">
                     <div className="flex items-center gap-2 px-4">
                         <SidebarTrigger className="-ml-1" variant="secondary" />
                         <Separator
@@ -70,7 +70,7 @@ export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, t
                         <ThemeToggle />
                     </div>
                 </header>
-                <div className="flex flex-1 flex-col min-h-0 overflow-hidden">{children}</div>
+                <div className="flex-1 overflow-auto">{children}</div>
             </SidebarInset>
         </SidebarProvider>
     );

@@ -53,11 +53,10 @@ export default function OrganizationPage() {
     // Handle billing success/cancel notifications
     useEffect(() => {
         const billingStatus = searchParams.get("billing");
-        
+
         if (billingStatus === "success") {
             toast({
                 title: "Payment successful!",
-                description: "Your plan has been upgraded successfully.",
                 duration: 5000,
             });
             // Clean up URL
@@ -65,7 +64,6 @@ export default function OrganizationPage() {
         } else if (billingStatus === "canceled") {
             toast({
                 title: "Payment canceled",
-                description: "No charges were made to your account.",
                 variant: "destructive",
                 duration: 5000,
             });

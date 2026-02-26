@@ -13,7 +13,7 @@ import {
     type DragOverEvent,
 } from '@dnd-kit/core'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, AlertCircle, Plus, LayoutGrid } from 'lucide-react'
+import { Loader2, AlertCircle, Plus, LayoutGrid, BarChart3 } from 'lucide-react'
 import { useBoard, useIssues, useColumns } from '../hooks/hooks'
 import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
@@ -497,6 +497,16 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                         filters={filters}
                         onFiltersChange={setFilters}
                     />
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/app/${orgId}/${projectId}/${boardId}/reports`)}
+                        className="h-8 gap-2"
+                    >
+                        <BarChart3 className="h-3.5 w-3.5" />
+                        View Reports
+                    </Button>
 
                     {canManage && (
                         <Button
