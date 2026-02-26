@@ -24,6 +24,8 @@ interface KanbanColumnProps {
     onDelete: (columnId: string) => void
     onToggleCompleted: (columnId: string, isCompleted: boolean) => void
     isOver?: boolean
+    isGroupedView?: boolean
+    groupByType?: 'status' | 'assignee' | 'priority' | 'label'
 }
 
 export function KanbanColumn({
@@ -35,6 +37,8 @@ export function KanbanColumn({
     onRename,
     onDelete,
     onToggleCompleted,
+    isGroupedView = false,
+    groupByType,
 }: KanbanColumnProps) {
     const [isRenaming, setIsRenaming] = useState(false)
     const [renameValue, setRenameValue] = useState(column.name)
@@ -104,7 +108,7 @@ export function KanbanColumn({
                 )}
 
                 <div className="flex items-center gap-0.5 shrink-0">
-                    {canManage && !isRenaming && (
+                    {canManage && !isRenaming && !isGroupedView && (
                         <>
                             <button
                                 onClick={() => onAddIssue(column.id)}

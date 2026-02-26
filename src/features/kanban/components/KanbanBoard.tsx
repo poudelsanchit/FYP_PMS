@@ -19,6 +19,7 @@ import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
 import { AddColumn } from './AddColumn'
 import { KanbanFilters, type KanbanFiltersState } from './KanbanFilters'
+import { KanbanGroupBy, type GroupByOption } from './KanbanGroupBy'
 import type { Issue, Column, Label, Priority } from '../types/types'
 import { Button } from '@/core/components/ui/button'
 import { CreateIssueModal } from '@/features/issue/components/Createissuemodal'
@@ -50,6 +51,9 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     const { createColumn, deleteColumn, renameColumn, toggleCompleted } = useColumns(orgId, projectId, boardId)
     const { members: projectMembers } = useProjectMembers(orgId, projectId, canManage)
     const { setSegments, clear } = useBreadcrumbStore()
+
+    // Derive members array early for use in useMemo hooks
+    const members = useMemo(() => projectMembers.map(pm => pm.user), [projectMembers])
 
     // Set breadcrumbs when board data is loaded
     useEffect(() => {
@@ -87,6 +91,9 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         dueDateFrom: null,
         dueDateTo: null,
     })
+
+    // Group by state
+    const [groupBy, setGroupBy] = useState<GroupByOption>('status')
 
     // DnD sensors — require 8px movement to start drag
     const sensors = useSensors(
@@ -157,19 +164,102 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
             return
         }
 
-        // Use the stored original position
+        setDragStartPosition(null)
+
+        // Helper function for API base URL
+        const BASE = (orgId: string, projectId: string, boardId: string) =>
+            `/api/organizations/${orgId}/projects/${projectId}/boards/${boardId}`
+
+        // Handle grouped views differently
+        if (groupBy !== 'status') {
+            // For grouped views, update the appropriate property when dropped on a different group
+            const targetGroupId = String(over.id)
+            
+            try {
+                const payload: any = {}
+                let shouldUpdate = false
+                
+                // Store original values for rollback
+                const originalLabelId = movedIssue.labelId
+                const originalLabel = movedIssue.label
+                const originalPriorityId = movedIssue.priorityId
+                const originalPriority = movedIssue.priority
+                
+                switch (groupBy) {
+                    case 'label':
+                        if (targetGroupId === 'no-label') {
+                            if (movedIssue.labelId) {
+                                payload.labelId = null
+                                shouldUpdate = true
+                                // Optimistic update - clear both labelId and label object
+                                setIssues(prev => prev.map(issue => 
+                                    issue.id === movedIssue.id ? { ...issue, labelId: null, label: null } : issue
+                                ))
+                            }
+                        } else if (movedIssue.labelId !== targetGroupId) {
+                            payload.labelId = targetGroupId
+                            shouldUpdate = true
+                            // Optimistic update - update labelId and find the label object
+                            const newLabel = labels.find(l => l.id === targetGroupId)
+                            setIssues(prev => prev.map(issue => 
+                                issue.id === movedIssue.id ? { ...issue, labelId: targetGroupId, label: newLabel || null } : issue
+                            ))
+                        }
+                        break
+                    case 'priority':
+                        if (targetGroupId === 'no-priority') {
+                            if (movedIssue.priorityId) {
+                                payload.priorityId = null
+                                shouldUpdate = true
+                                // Optimistic update - clear both priorityId and priority object
+                                setIssues(prev => prev.map(issue => 
+                                    issue.id === movedIssue.id ? { ...issue, priorityId: null, priority: null } : issue
+                                ))
+                            }
+                        } else if (movedIssue.priorityId !== targetGroupId) {
+                            payload.priorityId = targetGroupId
+                            shouldUpdate = true
+                            // Optimistic update - update priorityId and find the priority object
+                            const newPriority = priorities.find(p => p.id === targetGroupId)
+                            setIssues(prev => prev.map(issue => 
+                                issue.id === movedIssue.id ? { ...issue, priorityId: targetGroupId, priority: newPriority || null } : issue
+                            ))
+                        }
+                        break
+                }
+
+                if (shouldUpdate) {
+                    try {
+                        await updateIssue(movedIssue.id, payload, true)
+                    } catch (error) {
+                        console.error('Failed to update issue:', error)
+                        // Rollback on error - restore both ID and object
+                        if (groupBy === 'label') {
+                            setIssues(prev => prev.map(issue => 
+                                issue.id === movedIssue.id ? { ...issue, labelId: originalLabelId, label: originalLabel } : issue
+                            ))
+                        } else if (groupBy === 'priority') {
+                            setIssues(prev => prev.map(issue => 
+                                issue.id === movedIssue.id ? { ...issue, priorityId: originalPriorityId, priority: originalPriority } : issue
+                            ))
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to update issue:', error)
+            }
+            return
+        }
+
+        // Status grouping - original logic
         const originalColumnId = dragStartPosition.columnId
         const originalOrder = dragStartPosition.order
 
-        // Current position after optimistic updates
         const currentColumnId = movedIssue.columnId
         const currentOrder = movedIssue.order
 
-        // Only update if something changed from the original position
         const columnChanged = currentColumnId !== originalColumnId
         const orderChanged = currentOrder !== originalOrder
-
-        setDragStartPosition(null)
 
         if (!columnChanged && !orderChanged) return
 
@@ -178,19 +268,16 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                 order: currentOrder,
             }
 
-            // Only include columnId if it changed
             if (columnChanged) {
                 payload.columnId = currentColumnId
             }
 
-            // Make API call to persist the change (skip state update since we already did optimistic update)
             await updateIssue(movedIssue.id, payload, true)
         } catch (error) {
             console.error('Failed to update issue position:', error)
-            // Rollback optimistic update on error
             moveIssueOptimistic(String(active.id), originalColumnId, originalOrder)
         }
-    }, [issues, columns, dragStartPosition, updateIssue, moveIssueOptimistic])
+    }, [issues, dragStartPosition, updateIssue, moveIssueOptimistic, groupBy, setIssues, labels, priorities, orgId, projectId, boardId])
 
     // Filter issues based on active filters
     const filteredIssues = useMemo(() => {
@@ -234,7 +321,83 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         })
     }, [issues, filters])
 
-    // Group issues by column, sorted by order
+    // Group issues based on groupBy option
+    const groupedIssues = useMemo(() => {
+        interface GroupData {
+            id: string
+            name: string
+            color?: string
+            issues: Issue[]
+        }
+
+        const groups: GroupData[] = []
+
+        switch (groupBy) {
+            case 'status':
+                // Group by column/status
+                columns.forEach(col => {
+                    groups.push({
+                        id: col.id,
+                        name: col.name,
+                        issues: filteredIssues.filter(issue => issue.columnId === col.id),
+                    })
+                })
+                break
+
+            case 'priority':
+                // Group by priority - show all priorities
+                // Add no priority group first
+                const noPriorityIssues = filteredIssues.filter(issue => !issue.priorityId)
+                groups.push({
+                    id: 'no-priority',
+                    name: 'No Priority',
+                    issues: noPriorityIssues,
+                })
+
+                // Add all priorities (even if they have no issues)
+                priorities.forEach(priority => {
+                    const priorityIssues = filteredIssues.filter(issue => issue.priorityId === priority.id)
+                    groups.push({
+                        id: priority.id,
+                        name: priority.name,
+                        color: priority.color,
+                        issues: priorityIssues,
+                    })
+                })
+                break
+
+            case 'label':
+                // Group by label - show all labels
+                // Add no label group first
+                const noLabelIssues = filteredIssues.filter(issue => !issue.labelId)
+                groups.push({
+                    id: 'no-label',
+                    name: 'No Label',
+                    issues: noLabelIssues,
+                })
+
+                // Add all labels (even if they have no issues)
+                labels.forEach(label => {
+                    const labelIssues = filteredIssues.filter(issue => issue.labelId === label.id)
+                    groups.push({
+                        id: label.id,
+                        name: label.name,
+                        color: label.color,
+                        issues: labelIssues,
+                    })
+                })
+                break
+        }
+
+        // Sort issues within each group by order
+        groups.forEach(group => {
+            group.issues.sort((a, b) => a.order - b.order)
+        })
+
+        return groups
+    }, [filteredIssues, groupBy, columns, priorities, labels])
+
+    // Group issues by column, sorted by order (for status grouping compatibility)
     const issuesByColumn = useMemo(() => {
         const map = new Map<string, Issue[]>()
         columns.forEach(col => map.set(col.id, []))
@@ -302,8 +465,6 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         )
     }
 
-    const members = projectMembers.map(pm => pm.user)
-
     return (
         <div className="flex flex-col h-full overflow-hidden">
             {/* Board Header */}
@@ -325,6 +486,10 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <KanbanGroupBy value={groupBy} onChange={setGroupBy} />
+                    
+                    <div className="h-4 w-px bg-border" />
+                    
                     <KanbanFilters
                         labels={labels}
                         priorities={priorities}
@@ -356,22 +521,49 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                     >
                         <div className="flex gap-4 p-6 min-w-max">
                             <AnimatePresence>
-                                {columns.map(column => (
-                                    <KanbanColumn
-                                        key={column.id}
-                                        column={column}
-                                        issues={issuesByColumn.get(column.id) ?? []}
-                                        canManage={canManage}
-                                        onIssueClick={handleIssueClick}
-                                        onAddIssue={(colId) => { setCreateColumnId(colId); setCreateOpen(true) }}
-                                        onRename={handleRenameColumn}
-                                        onDelete={handleDeleteColumn}
-                                        onToggleCompleted={handleToggleCompleted}
-                                    />
-                                ))}
+                                {groupBy === 'status' ? (
+                                    // Status grouping - use columns with full management
+                                    <>
+                                        {columns.map(column => (
+                                            <KanbanColumn
+                                                key={column.id}
+                                                column={column}
+                                                issues={issuesByColumn.get(column.id) ?? []}
+                                                canManage={canManage}
+                                                onIssueClick={handleIssueClick}
+                                                onAddIssue={(colId) => { setCreateColumnId(colId); setCreateOpen(true) }}
+                                                onRename={handleRenameColumn}
+                                                onDelete={handleDeleteColumn}
+                                                onToggleCompleted={handleToggleCompleted}
+                                            />
+                                        ))}
+                                        {canManage && <AddColumn onAdd={handleAddColumn} />}
+                                    </>
+                                ) : (
+                                    // Other groupings - use grouped issues with drag-and-drop enabled
+                                    groupedIssues.map(group => (
+                                        <KanbanColumn
+                                            key={group.id}
+                                            column={{
+                                                id: group.id,
+                                                name: group.name,
+                                                order: 0,
+                                                isCompleted: false,
+                                                color: group.color,
+                                            } as any}
+                                            issues={group.issues}
+                                            canManage={true}
+                                            onIssueClick={handleIssueClick}
+                                            onAddIssue={() => {}}
+                                            onRename={() => Promise.resolve()}
+                                            onDelete={() => Promise.resolve()}
+                                            onToggleCompleted={() => Promise.resolve()}
+                                            isGroupedView={true}
+                                            groupByType={groupBy}
+                                        />
+                                    ))
+                                )}
                             </AnimatePresence>
-
-                            {canManage && <AddColumn onAdd={handleAddColumn} />}
                         </div>
 
                         {/* Drag overlay — floating card while dragging */}
