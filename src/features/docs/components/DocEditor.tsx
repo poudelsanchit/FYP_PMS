@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useDocEditor } from "../hooks/useDocEditor";
 import { EditorHeader } from "./EditorHeader";
-import { TiptapEditor } from "./TiptapEditor";
+import { SimpleEditor } from "@/features/rich-text-editor/components/tiptap-templates/simple/simple-editor";
 import type { Doc, Permissions } from "../types/doc.types";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
@@ -65,16 +65,56 @@ export function DocEditor({
         onTitleChange={(title) => updateDoc({ title })}
         onDelete={deleteDoc}
         permissions={permissions}
-        lastEditedBy={doc.authorName}
+        lastEditedBy={doc.authorName ?? undefined}
         updatedAt={doc.updatedAt}
       />
 
       {/* Editor content - only the rich text editor */}
-      <div className="flex-1 overflow-y-auto bg-muted/30">
-        <div className="max-w-4xl mx-auto px-8 py-8">
-          <TiptapEditor
-            content={doc.content}
-            onChange={(content) => updateDoc({ content })}
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full h-full">
+          <style>{`
+            .simple-editor-wrapper {
+              width: 100% !important;
+              height: 100% !important;
+              overflow: auto !important;
+              background: transparent !important;
+            }
+            .simple-editor-content {
+              max-width: 100% !important;
+              width: 100% !important;
+              height: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .simple-editor-content .tiptap.ProseMirror.simple-editor {
+              padding: 2rem 3rem !important;
+              padding-bottom: 50vh !important;
+              max-width: 100% !important;
+              width: 100% !important;
+              margin: 0 !important;
+              font-size: 1rem !important;
+              line-height: 1.7 !important;
+              min-height: 100% !important;
+            }
+            @media (max-width: 768px) {
+              .simple-editor-content .tiptap.ProseMirror.simple-editor {
+                padding: 1.5rem 1rem !important;
+                padding-bottom: 50vh !important;
+              }
+            }
+            .tiptap-toolbar {
+              border-bottom: 1px solid hsl(var(--border)) !important;
+              background: hsl(var(--background)) !important;
+              padding: 0.5rem 1rem !important;
+              position: sticky !important;
+              top: 0 !important;
+              z-index: 10 !important;
+            }
+          `}</style>
+          <SimpleEditor
+            initialContent={doc.content && doc.content.trim() !== "" ? JSON.parse(doc.content) : undefined}
+            onSave={(content) => updateDoc({ content: JSON.stringify(content) })}
+            showSaveButton={false}
           />
         </div>
       </div>

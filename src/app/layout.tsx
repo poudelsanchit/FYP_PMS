@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import "./globals.css";
+import "./globals.scss";
 import AuthProvider from "@/core/providers/auth/auth-provider";
 import { Toaster } from "@/core/components/ui/sonner";
 import { ThemeProvider } from "@/core/providers/theme/theme-provider";
