@@ -26,6 +26,25 @@ enum DocStatus {
   PUBLISHED
 }
 
+// ─── Billing ──────────────────────────────────────────────────────────────────
+
+enum PlanTier {
+  FREE
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  INCOMPLETE
+  UNPAID
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -40,8 +59,8 @@ model User {
   projectMembers      ProjectMember[]
   projectInvitations  ProjectInvitation[]
   issueAssignees      IssueAssignee[]
-  meetingRooms        MeetingRoom[] // NEW
-  meetingParticipants MeetingParticipant[] // NEW
+  meetingRooms        MeetingRoom[]
+  meetingParticipants MeetingParticipant[]
   docs                Doc[]
 
   @@map("users")
@@ -68,7 +87,8 @@ model Organization {
   members      OrganizationMember[]
   projects     Project[]
   boards       Board[]
-  meetingRooms MeetingRoom[] // NEW
+  meetingRooms MeetingRoom[]
+  subscription OrganizationSubscription? // NEW
 }
 
 model OrganizationMember {
@@ -101,6 +121,36 @@ model OrganizationInvitation {
   @@index([email])
   @@index([token])
 }
+
+// ─── Subscription ─────────────────────────────────────────────────────────────
+
+model OrganizationSubscription {
+  id                     String             @id @default(uuid())
+  organizationId         String             @unique
+  plan                   PlanTier           @default(FREE)
+  status                 SubscriptionStatus @default(ACTIVE)
+
+  // Stripe identifiers
+  stripeCustomerId       String?            @unique
+  stripeSubscriptionId   String?            @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?          // when the current billing period ends
+
+  cancelAtPeriodEnd      Boolean            @default(false)
+  trialEndsAt            DateTime?
+
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@map("organization_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Project {
   id             String   @id @default(uuid())
@@ -270,11 +320,11 @@ model MeetingRoom {
   organizationId String
   name           String
   description    String?
-  password       String // bcrypt hashed — never returned in API responses
+  password       String
   createdById    String
   isActive       Boolean   @default(true)
-  scheduledAt    DateTime? // optional: for scheduling future meetings
-  endedAt        DateTime? // set when room is closed
+  scheduledAt    DateTime?
+  endedAt        DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
