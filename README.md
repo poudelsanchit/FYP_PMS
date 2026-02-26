@@ -1,11 +1,6 @@
 - A Super Admin panel to view all Organizations and Manage Payments
 - Emoji react in video
 - Hand Raise
-- Screen Recordings
 - Waiting Room like meet ( Join Requests)
-- add a simple payment gateway to change the free organization to paid organization
+- add a simple payment gateway to change the free organization to paid organization and add restrictions on how many projects we can make as per our tier
 - also implement activity log functionality
-
-
-BUGS
-- in dashboard, Implement access control to show only all projects he/she is in

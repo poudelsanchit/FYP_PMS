@@ -174,17 +174,17 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         if (groupBy !== 'status') {
             // For grouped views, update the appropriate property when dropped on a different group
             const targetGroupId = String(over.id)
-            
+
             try {
                 const payload: any = {}
                 let shouldUpdate = false
-                
+
                 // Store original values for rollback
                 const originalLabelId = movedIssue.labelId
                 const originalLabel = movedIssue.label
                 const originalPriorityId = movedIssue.priorityId
                 const originalPriority = movedIssue.priority
-                
+
                 switch (groupBy) {
                     case 'label':
                         if (targetGroupId === 'no-label') {
@@ -192,7 +192,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                                 payload.labelId = null
                                 shouldUpdate = true
                                 // Optimistic update - clear both labelId and label object
-                                setIssues(prev => prev.map(issue => 
+                                setIssues(prev => prev.map(issue =>
                                     issue.id === movedIssue.id ? { ...issue, labelId: null, label: null } : issue
                                 ))
                             }
@@ -201,7 +201,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                             shouldUpdate = true
                             // Optimistic update - update labelId and find the label object
                             const newLabel = labels.find(l => l.id === targetGroupId)
-                            setIssues(prev => prev.map(issue => 
+                            setIssues(prev => prev.map(issue =>
                                 issue.id === movedIssue.id ? { ...issue, labelId: targetGroupId, label: newLabel || null } : issue
                             ))
                         }
@@ -212,7 +212,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                                 payload.priorityId = null
                                 shouldUpdate = true
                                 // Optimistic update - clear both priorityId and priority object
-                                setIssues(prev => prev.map(issue => 
+                                setIssues(prev => prev.map(issue =>
                                     issue.id === movedIssue.id ? { ...issue, priorityId: null, priority: null } : issue
                                 ))
                             }
@@ -221,7 +221,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                             shouldUpdate = true
                             // Optimistic update - update priorityId and find the priority object
                             const newPriority = priorities.find(p => p.id === targetGroupId)
-                            setIssues(prev => prev.map(issue => 
+                            setIssues(prev => prev.map(issue =>
                                 issue.id === movedIssue.id ? { ...issue, priorityId: targetGroupId, priority: newPriority || null } : issue
                             ))
                         }
@@ -235,11 +235,11 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                         console.error('Failed to update issue:', error)
                         // Rollback on error - restore both ID and object
                         if (groupBy === 'label') {
-                            setIssues(prev => prev.map(issue => 
+                            setIssues(prev => prev.map(issue =>
                                 issue.id === movedIssue.id ? { ...issue, labelId: originalLabelId, label: originalLabel } : issue
                             ))
                         } else if (groupBy === 'priority') {
-                            setIssues(prev => prev.map(issue => 
+                            setIssues(prev => prev.map(issue =>
                                 issue.id === movedIssue.id ? { ...issue, priorityId: originalPriorityId, priority: originalPriority } : issue
                             ))
                         }
@@ -301,15 +301,15 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
             // Due date range filter
             if (filters.dueDateFrom || filters.dueDateTo) {
                 if (!issue.dueDate) return false
-                
+
                 const dueDate = new Date(issue.dueDate)
-                
+
                 if (filters.dueDateFrom) {
                     const fromDate = new Date(filters.dueDateFrom)
                     fromDate.setHours(0, 0, 0, 0)
                     if (dueDate < fromDate) return false
                 }
-                
+
                 if (filters.dueDateTo) {
                     const toDate = new Date(filters.dueDateTo)
                     toDate.setHours(23, 59, 59, 999)
@@ -433,11 +433,11 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
 
     const handleToggleCompleted = async (columnId: string, isCompleted: boolean) => {
         const updated = await toggleCompleted(columnId, isCompleted)
-        setColumns(prev => prev.map(c => 
-            c.id === columnId 
-                ? { ...c, isCompleted } 
-                : c.isCompleted && isCompleted 
-                    ? { ...c, isCompleted: false } 
+        setColumns(prev => prev.map(c =>
+            c.id === columnId
+                ? { ...c, isCompleted }
+                : c.isCompleted && isCompleted
+                    ? { ...c, isCompleted: false }
                     : c
         ))
     }
@@ -466,7 +466,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     }
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden min-h-screen">
             {/* Board Header */}
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -487,9 +487,9 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
 
                 <div className="flex items-center gap-2">
                     <KanbanGroupBy value={groupBy} onChange={setGroupBy} />
-                    
+
                     <div className="h-4 w-px bg-border" />
-                    
+
                     <KanbanFilters
                         labels={labels}
                         priorities={priorities}
@@ -521,7 +521,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
             </motion.div>
 
             {/* Board canvas */}
-            <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden overscroll-x-contain">
+            <div className="flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain">
                 <div className="h-full">
                     <DndContext
                         sensors={sensors}
@@ -529,7 +529,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                         onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
                     >
-                        <div className="flex gap-4 p-6 min-w-max">
+                        <div className="flex gap-4 p-6 min-w-max h-full">
                             <AnimatePresence>
                                 {groupBy === 'status' ? (
                                     // Status grouping - use columns with full management
@@ -564,7 +564,7 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                                             issues={group.issues}
                                             canManage={true}
                                             onIssueClick={handleIssueClick}
-                                            onAddIssue={() => {}}
+                                            onAddIssue={() => { }}
                                             onRename={() => Promise.resolve()}
                                             onDelete={() => Promise.resolve()}
                                             onToggleCompleted={() => Promise.resolve()}

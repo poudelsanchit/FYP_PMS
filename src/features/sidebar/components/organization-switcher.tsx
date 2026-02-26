@@ -71,11 +71,11 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
 
   const handleOrgSwitch = (orgId: string) => {
     const targetOrg = organizations.find(org => org.id === orgId);
-    
+
     toast({
       title: `Switching to ${targetOrg?.name || 'organization'}...`,
     });
-    
+
     // Use Next.js router for smooth navigation
     router.push(`/app/${orgId}`);
   };
@@ -130,12 +130,12 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
                     </span>
                   )}
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 gap-0.5 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{currentOrg.name}</span>
                   <div className="flex items-center gap-1.5">
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[10px] px-1.5 py-0 h-4 font-medium ${planColors[currentPlan]}`}
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] px-1.5 py-0 h-4 font-medium ${planColors[currentPlan]}`}
                     >
                       <PlanIcon className="w-2.5 h-2.5 mr-0.5" />
                       {currentPlan}
@@ -157,8 +157,8 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 {currentOrg.name}
               </DropdownMenuLabel>
-              <DropdownMenuItem 
-                onClick={() => setShowUpgradeDialog(true)} 
+              <DropdownMenuItem
+                onClick={() => setShowUpgradeDialog(true)}
                 className="gap-2 p-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border border-blue-500/20"
               >
                 <div className="flex items-center justify-center size-4 rounded bg-gradient-to-br from-blue-500 to-purple-600">
@@ -168,8 +168,8 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
                   Upgrade Plan
                 </span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => router.push(`/app/${currentOrg.id}/members`)} 
+              <DropdownMenuItem
+                onClick={() => router.push(`/app/${currentOrg.id}/members`)}
                 className="gap-2 p-2"
               >
                 <Users className="size-4" />

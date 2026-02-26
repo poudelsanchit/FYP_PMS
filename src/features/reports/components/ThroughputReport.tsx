@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react'
 import { Bar, CartesianGrid, XAxis, YAxis, Line, ComposedChart, Cell, ReferenceLine } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/core/components/ui/card'
 import { Button } from '@/core/components/ui/button'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/core/components/ui/tooltip'
 import {
     ChartContainer,
     ChartTooltip,
@@ -135,7 +141,19 @@ export function ThroughputReport({ data }: ThroughputReportProps) {
 
             {/* Header + Toggle */}
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Throughput Analysis</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">Throughput Analysis</h2>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p>Shows how many issues your team finishes each day, week, or month. The dotted line shows the average trend to help you see the real pattern. Use this to predict when you'll finish work and spot when things slow down.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">View by:</span>
                     {(['daily', 'weekly', 'monthly'] as ViewBy[]).map((v) => (

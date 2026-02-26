@@ -1,11 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell, Rectangle } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/card'
 import { Alert, AlertDescription } from '@/core/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/core/components/ui/avatar'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/core/components/ui/tooltip'
 import {
     ChartContainer,
     ChartTooltip,
@@ -78,7 +84,19 @@ export function ColumnDistributionReport({ data }: ColumnDistributionReportProps
 
     return (
         <div className="space-y-6">
-            {/* Summary Cards */}
+            <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold">Column Distribution</h2>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                            <p>See how many issues are stuck in each column. Helps you spot where work is piling up and understand how far along your board is overall.</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className='rounded-sm'>
                     <CardHeader className="pb-2">

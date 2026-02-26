@@ -1,9 +1,8 @@
 'use client'
 
-import { Users, Info } from 'lucide-react'
+import { AlertCircle, Info } from 'lucide-react'
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/core/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/core/components/ui/avatar'
 import {
     Tooltip,
     TooltipContent,
@@ -15,15 +14,14 @@ import {
     ChartTooltip,
     type ChartConfig,
 } from '@/core/components/ui/chart'
-import { BoardReportData } from '../hooks/useBoardReports'
-import { StatCard } from './shared/StatCard'
+import { ProjectReportData } from '../../hooks/useProjectReports'
+import { StatCard } from '../shared/StatCard'
 
-interface AssigneeWorkloadReportProps {
-    data: BoardReportData
+interface PriorityVolumeReportProps {
+    data: ProjectReportData
 }
 
-export function AssigneeWorkloadReport({ data }: AssigneeWorkloadReportProps) {
-    // Prepare chart data with varied colors
+export function PriorityVolumeReport({ data }: PriorityVolumeReportProps) {
     const chartColors = [
         'var(--color-chart-1)',
         'var(--color-chart-2)',
@@ -32,102 +30,80 @@ export function AssigneeWorkloadReport({ data }: AssigneeWorkloadReportProps) {
         'var(--color-chart-5)',
     ]
 
-    const chartData = data.assigneeWorkload.assignees.map((assignee, index) => ({
-        name: assignee.name || 'Unknown',
-        totalIssues: assignee.totalIssues,
-        completedIssues: assignee.completedIssues,
-        inProgressIssues: assignee.inProgressIssues,
-        todoIssues: assignee.todoIssues,
-        fill: chartColors[index % chartColors.length],
-        avatar: assignee.avatar,
-        id: assignee.id,
+    const chartData = data.priorityVolume.map((priority, index) => ({
+        name: priority.name,
+        total: priority.total,
+        open: priority.open,
+        inProgress: priority.inProgress,
+        completed: priority.completed,
+        fill: priority.color || chartColors[index % chartColors.length],
+        id: priority.id,
     }))
 
     const chartConfig = {
-        totalIssues: {
+        total: {
             label: 'Total Issues',
         },
     } satisfies ChartConfig
 
-    // Calculate stats
-    const totalAssignees = data.assigneeWorkload.assignees.length
-    const totalAssignedIssues = data.assigneeWorkload.assignees.reduce(
-        (sum, a) => sum + a.totalIssues,
-        0
-    )
-    const avgIssuesPerAssignee = totalAssignees > 0 
-        ? Math.round((totalAssignedIssues / totalAssignees) * 10) / 10 
-        : 0
-
-    // Find most loaded assignee
-    const mostLoaded = data.assigneeWorkload.assignees[0]
+    const highestPriority = data.priorityVolume[0]
+    const totalPrioritized = data.priorityVolume.reduce((sum, p) => sum + p.total, 0)
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Assignee Workload Distribution</h2>
+                <AlertCircle className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Issue Volume by Priority</h2>
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                            <p>See how many open issues each team member has right now. Helps you spot who's overloaded and make sure work is spread fairly across the team.</p>
+                            <p>See how many issues are at each priority level (Critical, High, Medium, Low). Helps you understand if you're overloading your team with too many high-priority items.</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard
-                    title="Total Assignees"
-                    value={totalAssignees}
-                    subtitle="Active team members"
+                    title="Total Priorities"
+                    value={data.summary.totalPriorities}
+                    subtitle="Across project"
                 />
 
                 <StatCard
-                    title="Avg per Assignee"
-                    value={`${avgIssuesPerAssignee} issues`}
+                    title="Prioritized Issues"
+                    value={totalPrioritized}
+                    subtitle={`${Math.round((totalPrioritized / data.summary.totalIssues) * 100)}% of all issues`}
                 />
 
-                <StatCard
-                    title="Unassigned Issues"
-                    value={data.assigneeWorkload.unassignedCount}
-                    variant={data.assigneeWorkload.unassignedCount > 0 ? 'warning' : 'default'}
-                />
-
-                {mostLoaded && (
+                {highestPriority && (
                     <StatCard
-                        title="Most Loaded"
-                        value={`${mostLoaded.totalIssues} issues`}
-                        subtitle={mostLoaded.name || 'Unknown'}
+                        title="Most Common Priority"
+                        value={`${highestPriority.total} issues`}
+                        subtitle={highestPriority.name}
                     />
                 )}
             </div>
 
-            {/* No assignees */}
-            {totalAssignees === 0 && (
+            {chartData.length === 0 ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
-                        <div className="text-4xl mb-3">👥</div>
-                        <h3 className="text-lg font-semibold mb-1">No Assigned Issues</h3>
+                        <div className="text-4xl mb-3">⚡</div>
+                        <h3 className="text-lg font-semibold mb-1">No Priorities</h3>
                         <p className="text-sm text-muted-foreground">
-                            All issues are currently unassigned
+                            Create priorities to organize your issues
                         </p>
                     </CardContent>
                 </Card>
-            )}
-
-            {/* Bar Chart */}
-            {totalAssignees > 0 && (
+            ) : (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Workload by Assignee</CardTitle>
+                        <CardTitle>Issues by Priority</CardTitle>
                         <CardDescription>
-                            Number of issues assigned to each team member
+                            Distribution of issues across different priority levels
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -159,39 +135,37 @@ export function AssigneeWorkloadReport({ data }: AssigneeWorkloadReportProps) {
                                         return (
                                             <div className="rounded-lg border bg-background p-3 shadow-md">
                                                 <div className="flex items-center gap-2 mb-2">
-                                                    <Avatar className="h-6 w-6">
-                                                        <AvatarImage src={data.avatar || undefined} />
-                                                        <AvatarFallback className="text-xs">
-                                                            {data.name?.[0] || '?'}
-                                                        </AvatarFallback>
-                                                    </Avatar>
+                                                    <div
+                                                        className="w-3 h-3 rounded"
+                                                        style={{ backgroundColor: data.fill }}
+                                                    />
                                                     <span className="font-semibold">{data.name}</span>
                                                 </div>
                                                 <div className="space-y-1 text-sm">
                                                     <div className="flex items-center justify-between gap-4">
                                                         <span className="text-muted-foreground">Total:</span>
-                                                        <span className="font-medium">{data.totalIssues}</span>
+                                                        <span className="font-medium">{data.total}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-muted-foreground">Open:</span>
+                                                        <span className="font-medium">{data.open}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-muted-foreground">In Progress:</span>
+                                                        <span className="font-medium">{data.inProgress}</span>
                                                     </div>
                                                     <div className="flex items-center justify-between gap-4">
                                                         <span className="text-muted-foreground">Completed:</span>
                                                         <span className="font-medium text-green-600 dark:text-green-400">
-                                                            {data.completedIssues}
+                                                            {data.completed}
                                                         </span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between gap-4">
-                                                        <span className="text-muted-foreground">In Progress:</span>
-                                                        <span className="font-medium">{data.inProgressIssues}</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between gap-4">
-                                                        <span className="text-muted-foreground">To Do:</span>
-                                                        <span className="font-medium">{data.todoIssues}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         )
                                     }}
                                 />
-                                <Bar dataKey="totalIssues" radius={[8, 8, 0, 0]}>
+                                <Bar dataKey="total" radius={[8, 8, 0, 0]}>
                                     {chartData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.fill} />
                                     ))}
@@ -199,42 +173,24 @@ export function AssigneeWorkloadReport({ data }: AssigneeWorkloadReportProps) {
                             </BarChart>
                         </ChartContainer>
 
-                        {/* Legend */}
                         <div className="mt-6 space-y-2">
-                            {chartData.map((item, index) => (
+                            {chartData.map((item) => (
                                 <div key={item.id} className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
                                         <div
                                             className="w-3 h-3 rounded"
                                             style={{ backgroundColor: item.fill }}
                                         />
-                                        <Avatar className="h-5 w-5">
-                                            <AvatarImage src={item.avatar || undefined} />
-                                            <AvatarFallback className="text-xs">
-                                                {item.name?.[0] || '?'}
-                                            </AvatarFallback>
-                                        </Avatar>
                                         <span>{item.name}</span>
                                     </div>
                                     <div className="flex items-center gap-4 text-muted-foreground">
-                                        <span>{item.totalIssues} total</span>
+                                        <span>{item.total} total</span>
                                         <span className="text-green-600 dark:text-green-400">
-                                            {item.completedIssues} done
+                                            {item.completed} done
                                         </span>
                                     </div>
                                 </div>
                             ))}
-                            {data.assigneeWorkload.unassignedCount > 0 && (
-                                <div className="flex items-center justify-between text-sm pt-2 border-t">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded bg-muted" />
-                                        <span className="text-muted-foreground">Unassigned</span>
-                                    </div>
-                                    <span className="text-muted-foreground">
-                                        {data.assigneeWorkload.unassignedCount} issues
-                                    </span>
-                                </div>
-                            )}
                         </div>
                     </CardContent>
                 </Card>

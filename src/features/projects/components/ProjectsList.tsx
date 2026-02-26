@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import clsx from 'clsx'
 import {
     Plus, Loader2, AlertCircle, FolderKanban,
-    MoreHorizontal, Users, Trash2, Settings, ChevronRight, FileText
+    MoreHorizontal, Users, Trash2, Settings, ChevronRight, FileText, BarChart3
 } from 'lucide-react'
 import {
     SidebarGroup,
@@ -56,7 +56,8 @@ interface ProjectRowProps {
     membership: { isMember: boolean; role?: 'PROJECT_LEAD' | 'PROJECT_MEMBER' } | undefined
     isAdmin: boolean
     onMembersClick: () => void
-    onSettingsClick: () => void  // ← added
+    onSettingsClick: () => void
+    onReportsClick: () => void
     onDeleteClick: () => void
     onBoardAdded: (board: Board) => void
     onBoardRemoved: (boardId: string) => void
@@ -72,7 +73,8 @@ function ProjectRow({
     membership,
     isAdmin,
     onMembersClick,
-    onSettingsClick,  // ← added
+    onSettingsClick,
+    onReportsClick,
     onDeleteClick,
     onBoardAdded,
     onBoardRemoved,
@@ -137,19 +139,28 @@ function ProjectRow({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent side="right" align="start" className="w-48">
                                         {membership?.isMember && (
-                                            <DropdownMenuItem
-                                                onSelect={onMembersClick}
-                                                className="gap-2 cursor-pointer"
-                                            >
-                                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                                <span>Members</span>
-                                            </DropdownMenuItem>
+                                            <>
+                                                <DropdownMenuItem
+                                                    onSelect={onMembersClick}
+                                                    className="gap-2 cursor-pointer"
+                                                >
+                                                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                                    <span>Members</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onSelect={onReportsClick}
+                                                    className="gap-2 cursor-pointer"
+                                                >
+                                                    <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                                                    <span>View Reports</span>
+                                                </DropdownMenuItem>
+                                            </>
                                         )}
                                         {isAdmin && (
                                             <>
                                                 <DropdownMenuItem
                                                     className="gap-2 cursor-pointer"
-                                                    onSelect={onSettingsClick}  // ← wired up
+                                                    onSelect={onSettingsClick}
                                                 >
                                                     <Settings className="h-3.5 w-3.5 text-muted-foreground" />
                                                     <span>Settings</span>
@@ -223,6 +234,7 @@ function ProjectRow({
 }
 
 const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
+    const router = useRouter()
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<ProjectTarget>(null)
     const [membersTarget, setMembersTarget] = useState<ProjectTarget>(null)
@@ -340,13 +352,14 @@ const ProjectsList = ({ orgId, userRole }: ProjectsListProps) => {
                                         userIsLead: isProjectLead,
                                     })
                                 }
-                                onSettingsClick={() =>       // ← added
+                                onSettingsClick={() =>
                                     setSettingsTarget({
                                         id: project.id,
                                         name: project.name,
                                         userIsLead: isProjectLead,
                                     })
                                 }
+                                onReportsClick={() => router.push(`/app/${orgId}/${project.id}/reports`)}
                                 onDeleteClick={() =>
                                     setDeleteTarget({
                                         id: project.id,

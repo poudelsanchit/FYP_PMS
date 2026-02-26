@@ -1,9 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight, Calendar } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Calendar, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/core/components/ui/card'
 import { Button } from '@/core/components/ui/button'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/core/components/ui/tooltip'
 import { BoardReportData } from '../hooks/useBoardReports'
 import { StatCard } from './shared/StatCard'
 import { IssueTable, PriorityBadge, LabelBadge, AssigneeAvatars } from './shared/IssueTable'
@@ -138,6 +144,16 @@ export function OverdueReport({ data }: OverdueReportProps) {
                 <div className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-orange-500" />
                     <h2 className="text-lg font-semibold">Overdue Issues · {data.overdue.total} total</h2>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p>Shows all issues that are past their due date. Red means really late (5+ days), yellow means moderately late (2-5 days), orange means just a bit late (1 day). Unassigned overdue issues are highlighted because they're easy to miss.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Group by:</span>
