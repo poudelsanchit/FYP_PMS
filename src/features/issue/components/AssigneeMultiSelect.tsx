@@ -83,7 +83,7 @@ export function AssigneeMultiSelect({
             <PopoverTrigger asChild>
                 <button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-foreground hover:bg-muted transition-all"
                 >
                     {/* Show stacked avatars if selected, otherwise icon */}
                     {selectedMembers.length > 0 ? (
@@ -93,7 +93,7 @@ export function AssigneeMultiSelect({
                             ))}
                         </div>
                     ) : (
-                        <UserCircle2 className="h-3.5 w-3.5 opacity-60" />
+                        <UserCircle2 className="h-3.5 w-3.5" />
                     )}
 
                     <span>

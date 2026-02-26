@@ -18,6 +18,7 @@ import { useBoard, useIssues, useColumns } from '../hooks/hooks'
 import { KanbanColumn } from './KanbanColumn'
 import { IssueCard } from './IssueCard'
 import { AddColumn } from './AddColumn'
+import { KanbanFilters, type KanbanFiltersState } from './KanbanFilters'
 import type { Issue, Column, Label, Priority } from '../types/types'
 import { Button } from '@/core/components/ui/button'
 import { CreateIssueModal } from '@/features/issue/components/Createissuemodal'
@@ -77,6 +78,15 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
     // UI state
     const [createOpen, setCreateOpen] = useState(false)
     const [createColumnId, setCreateColumnId] = useState<string | null>(null)
+
+    // Filter state
+    const [filters, setFilters] = useState<KanbanFiltersState>({
+        labelId: null,
+        priorityId: null,
+        assigneeId: null,
+        dueDateFrom: null,
+        dueDateTo: null,
+    })
 
     // DnD sensors — require 8px movement to start drag
     const sensors = useSensors(
@@ -182,18 +192,60 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
         }
     }, [issues, columns, dragStartPosition, updateIssue, moveIssueOptimistic])
 
+    // Filter issues based on active filters
+    const filteredIssues = useMemo(() => {
+        return issues.filter(issue => {
+            // Label filter
+            if (filters.labelId && issue.labelId !== filters.labelId) {
+                return false
+            }
+
+            // Priority filter
+            if (filters.priorityId && issue.priorityId !== filters.priorityId) {
+                return false
+            }
+
+            // Assignee filter
+            if (filters.assigneeId) {
+                const hasAssignee = issue.assignees?.some(a => a.userId === filters.assigneeId)
+                if (!hasAssignee) return false
+            }
+
+            // Due date range filter
+            if (filters.dueDateFrom || filters.dueDateTo) {
+                if (!issue.dueDate) return false
+                
+                const dueDate = new Date(issue.dueDate)
+                
+                if (filters.dueDateFrom) {
+                    const fromDate = new Date(filters.dueDateFrom)
+                    fromDate.setHours(0, 0, 0, 0)
+                    if (dueDate < fromDate) return false
+                }
+                
+                if (filters.dueDateTo) {
+                    const toDate = new Date(filters.dueDateTo)
+                    toDate.setHours(23, 59, 59, 999)
+                    if (dueDate > toDate) return false
+                }
+            }
+
+            return true
+        })
+    }, [issues, filters])
+
     // Group issues by column, sorted by order
     const issuesByColumn = useMemo(() => {
         const map = new Map<string, Issue[]>()
         columns.forEach(col => map.set(col.id, []))
-        issues.forEach(issue => {
+        filteredIssues.forEach(issue => {
             if (map.has(issue.columnId)) {
                 map.get(issue.columnId)!.push(issue)
             }
         })
         map.forEach((arr) => arr.sort((a, b) => a.order - b.order))
         return map
-    }, [issues, columns])
+    }, [filteredIssues, columns])
 
     const handleAddColumn = async (name: string, isCompleted = false) => {
         const col = await createColumn(name, isCompleted)
@@ -266,19 +318,31 @@ export function KanbanBoard({ orgId, projectId, boardId, labels, priorities, can
                     </div>
                     <div>
                         <h1 className="text-base font-semibold text-foreground">{board?.name ?? 'Board'}</h1>
-                        <p className="text-xs text-muted-foreground">{issues.length} issues · {columns.length} columns</p>
+                        <p className="text-xs text-muted-foreground">
+                            {filteredIssues.length} {filteredIssues.length === issues.length ? 'issues' : `of ${issues.length} issues`} · {columns.length} columns
+                        </p>
                     </div>
                 </div>
 
-                {canManage && (
-                    <Button
-                        onClick={() => { setCreateColumnId(null); setCreateOpen(true) }}
-                        className='rounded-xs cursor-pointer'
-                    >
-                        <Plus className="h-3.5 w-3.5" />
-                        New issue
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    <KanbanFilters
+                        labels={labels}
+                        priorities={priorities}
+                        members={members}
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                    />
+
+                    {canManage && (
+                        <Button
+                            onClick={() => { setCreateColumnId(null); setCreateOpen(true) }}
+                            className='rounded-xs cursor-pointer'
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            New issue
+                        </Button>
+                    )}
+                </div>
             </motion.div>
 
             {/* Board canvas */}

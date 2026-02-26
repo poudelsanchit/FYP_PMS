@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, ArrowLeft, Trash2, Tag, AlertTriangle } from 'lucide-react'
-import { MetadataField, LabelField, PriorityField, AssigneeField, DueDateField } from '@/features/issue/components/MetadataField'
+import { MetadataField, LabelField, PriorityField, AssigneeField, DueDateField, StatusField } from '@/features/issue/components/MetadataField'
 import { useProjectLabels } from '@/features/projects/settings/hooks/useProjectLabel'
 import { useProjectPriorities } from '@/features/projects/settings/hooks/Useprojectpriorities'
 import { useProjectMembers } from '@/features/projects/hooks/useProjectMembers'
@@ -19,7 +19,7 @@ export default function IssueDetailPage({ params }: PageProps) {
     const router = useRouter()
 
     const [issue, setIssue] = useState<Issue | null>(null)
-    const [columnName, setColumnName] = useState<string>('Loading...')
+    const [columns, setColumns] = useState<Array<{ id: string; name: string; isCompleted: boolean }>>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
@@ -48,14 +48,15 @@ export default function IssueDetailPage({ params }: PageProps) {
             const data = await res.json()
             setIssue(data.data)
             
-            // Fetch column name
+            // Fetch board columns
             const boardRes = await fetch(
-                `/api/organizations/${tenantId}/projects/${projectId}/boards/${boardId}`
+                `/api/organizations/${tenantId}/projects/${projectId}/boards/${boardId}?includeColumns=true`
             )
             if (boardRes.ok) {
                 const boardData = await boardRes.json()
-                const column = boardData.data.columns?.find((c: any) => c.id === data.data.columnId)
-                if (column) setColumnName(column.name)
+                if (boardData.data.columns) {
+                    setColumns(boardData.data.columns)
+                }
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load issue')
@@ -70,6 +71,7 @@ export default function IssueDetailPage({ params }: PageProps) {
         labelId?: string | null
         priorityId?: string | null
         dueDate?: string | null
+        columnId?: string
     }) => {
         if (!issue) return
         setSaving(true)
@@ -171,6 +173,25 @@ export default function IssueDetailPage({ params }: PageProps) {
         ...priorities.map(p => ({ id: p.id, name: p.name, color: p.color })),
     ]
 
+    // Status colors mapping
+    const STATUS_COLORS: Record<string, string> = {
+        backlog: '#6b7280',
+        todo: '#3b82f6',
+        'in progress': '#f59e0b',
+        done: '#22c55e',
+        cancelled: '#ef4444',
+    }
+
+    const getColumnColor = (name: string): string => {
+        return STATUS_COLORS[name.toLowerCase()] ?? '#6b7280'
+    }
+
+    const statusOptions = columns.map(c => ({
+        id: c.id,
+        name: c.name,
+        color: getColumnColor(c.name),
+    }))
+
     return (
         <div className="flex flex-col h-screen bg-background">
             {/* Header */}
@@ -240,6 +261,15 @@ export default function IssueDetailPage({ params }: PageProps) {
                 {/* Right: Metadata sidebar */}
                 <div className="w-80 border-l border-border overflow-y-auto bg-card/30">
                     <div className="p-6 space-y-6">
+
+                        {/* Status */}
+                        <MetadataField label="Status">
+                            <StatusField
+                                value={issue.columnId}
+                                options={statusOptions}
+                                onChange={columnId => handleUpdate({ columnId })}
+                            />
+                        </MetadataField>
 
                         {/* Labels */}
                         <MetadataField label="Labels">

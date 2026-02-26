@@ -2,6 +2,8 @@
 
 import { prisma } from "@/core/lib/prisma/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/core/lib/auth/authOptions";
 
 // GET /api/organizations/[orgId]/dashboard
 export async function GET(
@@ -10,6 +12,11 @@ export async function GET(
 ) {
     try {
         const { orgId } = await params;
+
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
         const organization = await prisma.organization.findUnique({
             where: { id: orgId },
@@ -20,7 +27,14 @@ export async function GET(
         }
 
         const projects = await prisma.project.findMany({
-            where: { organizationId: orgId },
+            where: { 
+                organizationId: orgId,
+                members: {
+                    some: {
+                        userId: session.user.id
+                    }
+                }
+            },
             include: {
                 boards: {
                     orderBy: { createdAt: "asc" },

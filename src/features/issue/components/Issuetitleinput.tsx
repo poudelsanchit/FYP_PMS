@@ -48,9 +48,9 @@ export const IssueTitleInput = forwardRef<IssueTitleInputHandle, IssueTitleInput
                 required
                 className={cn(
                     'w-full resize-none overflow-hidden bg-transparent',
-                    'text-[1.05rem] font-semibold leading-snug text-foreground',
-                    'placeholder:text-muted-foreground/35 focus:outline-none',
-                    hasError && 'placeholder:text-destructive/40'
+                    'text-lg font-semibold leading-snug text-foreground',
+                    'placeholder:text-muted-foreground/50 focus:outline-none',
+                    hasError && 'placeholder:text-destructive/50'
                 )}
             />
         )

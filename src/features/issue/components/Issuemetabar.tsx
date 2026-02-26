@@ -60,13 +60,13 @@ export function IssueMetaBar({
                         <button
                             type="button"
                             className={cn(
-                                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 transition-all",
+                                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border transition-all",
                                 dueDate
                                     ? "bg-muted text-foreground hover:bg-muted/80"
-                                    : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border"
+                                    : "bg-background text-foreground hover:bg-muted hover:border-border"
                             )}
                         >
-                            <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                            <CalendarDays className="h-3.5 w-3.5" />
                             {dueDate
                                 ? new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                                 : 'Due date'}
@@ -98,9 +98,9 @@ export function IssueMetaBar({
             ) : (
                 <button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-foreground hover:bg-muted transition-all"
                 >
-                    <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                    <CalendarDays className="h-3.5 w-3.5" />
                     Due date
                 </button>
             )}

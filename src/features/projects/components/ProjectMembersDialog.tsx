@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Loader2, UserX, Clock, X, Users, UserPlus } from 'lucide-react'
+import { Loader2, UserX, Clock, X, Users, UserPlus, UserCog } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -16,6 +16,7 @@ import { Separator } from '@/core/components/ui/separator'
 import { useProjectMembers } from '../hooks/useProjectMembers'
 import { MemberMultiSelect } from './MemberMultiSelect'
 import RemoveMemberDialog from './RemoveMember'
+import { ChangeProjectRoleDialog } from './ChangeProjectRoleDialog'
 import type { ProjectMember } from '../hooks/useProjectMembers'
 
 interface ProjectMembersDialogProps {
@@ -44,6 +45,7 @@ const ProjectMembersDialog = ({
     const [inviteSuccess, setInviteSuccess] = useState(false)
     // Inside the component, add state for the removal target
     const [removeTarget, setRemoveTarget] = useState<ProjectMember | null>(null)
+    const [changeRoleTarget, setChangeRoleTarget] = useState<ProjectMember | null>(null)
 
 
     const {
@@ -55,6 +57,7 @@ const ProjectMembersDialog = ({
         inviteMembers,
         removeMember,
         cancelInvite,
+        changeRole,
     } = useProjectMembers(orgId, open ? project?.id ?? null : null, isAdmin || userProjectRole === 'PROJECT_LEAD')
 
     // Determine if user can manage members (admin, org admin, or project lead)
@@ -85,6 +88,11 @@ const ProjectMembersDialog = ({
     const handleRemoveMember = async (memberId: string): Promise<boolean> => {
         return await removeMember(memberId)
     }
+
+    const handleChangeRole = async (memberId: string, newRole: 'PROJECT_LEAD' | 'PROJECT_MEMBER'): Promise<boolean> => {
+        return await changeRole(memberId, newRole)
+    }
+
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
@@ -244,16 +252,29 @@ const ProjectMembersDialog = ({
                                                         </p>
                                                     </div>
 
-                                                    {canManage && member.role !== 'PROJECT_LEAD' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setRemoveTarget(member)}
-                                                            className="opacity-0 group-hover:opacity-100 transition-opacity h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 ml-1"
-                                                        >
-                                                            <UserX className="h-3.5 w-3.5 mr-1" />
-                                                            <span className="text-xs">Remove</span>
-                                                        </Button>
+                                                    {canManage && (
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setChangeRoleTarget(member)}
+                                                                className="h-7 px-2 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                            >
+                                                                <UserCog className="h-3.5 w-3.5 mr-1" />
+                                                                <span className="text-xs">Change Role</span>
+                                                            </Button>
+                                                            {member.role !== 'PROJECT_LEAD' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => setRemoveTarget(member)}
+                                                                    className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                >
+                                                                    <UserX className="h-3.5 w-3.5 mr-1" />
+                                                                    <span className="text-xs">Remove</span>
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </div>
                                             ))}
@@ -270,6 +291,12 @@ const ProjectMembersDialog = ({
                 onOpenChange={(open) => !open && setRemoveTarget(null)}
                 member={removeTarget}
                 onConfirm={handleRemoveMember}
+            />
+            <ChangeProjectRoleDialog
+                open={!!changeRoleTarget}
+                onOpenChange={(open) => !open && setChangeRoleTarget(null)}
+                member={changeRoleTarget}
+                onConfirm={handleChangeRole}
             />
         </Dialog>
     )

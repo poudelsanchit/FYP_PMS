@@ -149,23 +149,26 @@ export function CreateIssueModal({
                 <form onSubmit={handleSubmit} className="flex flex-col">
 
                     {/* ── Header ── */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                        <IssueStatusPill
-                            value={columnId}
-                            options={statusOptions}
-                            onChange={setColumnId}
-                        />
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-sm font-semibold text-foreground">New Issue</h2>
+                            <IssueStatusPill
+                                value={columnId}
+                                options={statusOptions}
+                                onChange={setColumnId}
+                            />
+                        </div>
                     </div>
 
                     {/* ── Body ── */}
-                    <div className="flex flex-col px-5 pt-4 pb-2 gap-3">
+                    <div className="flex flex-col px-5 pt-5 pb-3 gap-4">
                         <IssueTitleInput
                             ref={titleRef}
                             value={title}
                             onChange={setTitle}
                             onEnter={() => document.getElementById('issue-desc')?.focus()}
                         />
-                        <Separator className='h-0.5 bg-border/50 ' />
+                        <Separator className='h-px bg-border' />
                         <IssueDescriptionInput
                             id="issue-desc"
                             value={description}
@@ -192,7 +195,7 @@ export function CreateIssueModal({
                     {error && <IssueErrorBanner message={error} />}
 
                     {/* ── Divider ── */}
-                    <div className="h-px bg-border/50 mx-5" />
+                    <div className="h-px bg-border mx-5" />
 
                     {/* ── Footer ── */}
                     <IssueModalFooter

@@ -1,7 +1,6 @@
-// src/features/members/components/ChangeRoleDialog.tsx
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState } from 'react'
 import {
     Dialog,
     DialogContent,
@@ -9,58 +8,58 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/core/components/ui/dialog";
-import { Button } from "@/core/components/ui/button";
-import { Label } from "@/core/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/core/components/ui/radio-group";
-import { Crown, User, Loader2, Shield, AlertCircle } from "lucide-react";
-import { Member } from "../hooks/useMembers";
+} from '@/core/components/ui/dialog'
+import { Button } from '@/core/components/ui/button'
+import { RadioGroup, RadioGroupItem } from '@/core/components/ui/radio-group'
+import { Label } from '@/core/components/ui/label'
+import { Loader2, Shield, User, AlertCircle, Crown } from 'lucide-react'
+import type { ProjectMember } from '../hooks/useProjectMembers'
 
-interface ChangeRoleDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    member: Member | null;
-    onConfirm: (memberId: string, newRole: "ORG_ADMIN" | "ORG_MEMBER") => Promise<void>;
+interface ChangeProjectRoleDialogProps {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+    member: ProjectMember | null
+    onConfirm: (memberId: string, newRole: 'PROJECT_LEAD' | 'PROJECT_MEMBER') => Promise<boolean>
 }
 
-export function ChangeRoleDialog({
+export function ChangeProjectRoleDialog({
     open,
     onOpenChange,
     member,
     onConfirm,
-}: ChangeRoleDialogProps) {
-    const [selectedRole, setSelectedRole] = useState<"ORG_ADMIN" | "ORG_MEMBER">(
-        member?.role || "ORG_MEMBER"
-    );
-    const [isLoading, setIsLoading] = useState(false);
+}: ChangeProjectRoleDialogProps) {
+    const [selectedRole, setSelectedRole] = useState<'PROJECT_LEAD' | 'PROJECT_MEMBER'>(
+        member?.role ?? 'PROJECT_MEMBER'
+    )
+    const [isLoading, setIsLoading] = useState(false)
 
     // Update selected role when member changes
     useState(() => {
         if (member) {
-            setSelectedRole(member.role);
+            setSelectedRole(member.role)
         }
-    });
+    })
 
     const handleConfirm = async () => {
         if (!member || selectedRole === member.role) {
-            onOpenChange(false);
-            return;
+            onOpenChange(false)
+            return
         }
 
-        setIsLoading(true);
+        setIsLoading(true)
         try {
-            await onConfirm(member.id, selectedRole);
-            onOpenChange(false);
+            await onConfirm(member.id, selectedRole)
+            onOpenChange(false)
         } catch (error) {
-            console.error("Error changing role:", error);
+            console.error('Error changing role:', error)
         } finally {
-            setIsLoading(false);
+            setIsLoading(false)
         }
-    };
+    }
 
-    if (!member) return null;
+    if (!member) return null
 
-    const isRoleChanged = selectedRole !== member.role;
+    const isRoleChanged = selectedRole !== member.role
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,7 +82,7 @@ export function ChangeRoleDialog({
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">
-                                {member.user.name || "Anonymous User"}
+                                {member.user.name || 'Anonymous User'}
                             </p>
                             <p className="text-sm text-muted-foreground truncate">
                                 {member.user.email}
@@ -97,44 +96,45 @@ export function ChangeRoleDialog({
                         <RadioGroup
                             value={selectedRole}
                             onValueChange={(value: string) =>
-                                setSelectedRole(value as "ORG_ADMIN" | "ORG_MEMBER")
+                                setSelectedRole(value as 'PROJECT_LEAD' | 'PROJECT_MEMBER')
                             }
                         >
-                            {/* Admin role */}
+                            {/* Lead role */}
                             <div
-                                className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${selectedRole === "ORG_ADMIN"
-                                        ? "border-primary bg-primary/5"
-                                        : "border-border hover:border-primary/50"
-                                    }`}
-                                onClick={() => setSelectedRole("ORG_ADMIN")}
+                                className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                                    selectedRole === 'PROJECT_LEAD'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border hover:border-primary/50'
+                                }`}
+                                onClick={() => setSelectedRole('PROJECT_LEAD')}
                             >
-                                <RadioGroupItem value="ORG_ADMIN" id="admin" className="mt-1" />
+                                <RadioGroupItem value="PROJECT_LEAD" id="lead" className="mt-1" />
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Crown className="w-4 h-4 text-yellow-500" />
                                         <Label
-                                            htmlFor="admin"
+                                            htmlFor="lead"
                                             className="font-semibold cursor-pointer"
                                         >
-                                            Admin
+                                            Lead
                                         </Label>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Full access to manage organization settings, members, billing,
-                                        and all projects
+                                        Can manage project members, settings, and has full access to all project features
                                     </p>
                                 </div>
                             </div>
 
                             {/* Member role */}
                             <div
-                                className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${selectedRole === "ORG_MEMBER"
-                                        ? "border-primary bg-primary/5"
-                                        : "border-border hover:border-primary/50"
-                                    }`}
-                                onClick={() => setSelectedRole("ORG_MEMBER")}
+                                className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                                    selectedRole === 'PROJECT_MEMBER'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border hover:border-primary/50'
+                                }`}
+                                onClick={() => setSelectedRole('PROJECT_MEMBER')}
                             >
-                                <RadioGroupItem value="ORG_MEMBER" id="member" className="mt-1" />
+                                <RadioGroupItem value="PROJECT_MEMBER" id="member" className="mt-1" />
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         <User className="w-4 h-4 text-muted-foreground" />
@@ -146,7 +146,7 @@ export function ChangeRoleDialog({
                                         </Label>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Can view and collaborate on projects they're assigned to
+                                        Can view and contribute to the project
                                     </p>
                                 </div>
                             </div>
@@ -158,9 +158,9 @@ export function ChangeRoleDialog({
                         <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                             <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                             <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                                {selectedRole === "ORG_ADMIN"
-                                    ? "This member will gain full administrative access to the organization."
-                                    : "This member will lose administrative privileges and only have access to assigned projects."}
+                                {selectedRole === 'PROJECT_LEAD'
+                                    ? 'This member will gain full access to manage this project.'
+                                    : 'This member will lose project management privileges and only have contributor access.'}
                             </p>
                         </div>
                     )}
@@ -193,5 +193,5 @@ export function ChangeRoleDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
+    )
 }

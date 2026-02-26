@@ -31,7 +31,7 @@ export function IssueModalFooter({
                 />
                 <Label
                     htmlFor="create-another"
-                    className="text-xs text-muted-foreground cursor-pointer select-none"
+                    className="text-xs text-foreground cursor-pointer select-none"
                 >
                     Create another
                 </Label>
@@ -42,7 +42,7 @@ export function IssueModalFooter({
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
                 >
                     Cancel
                 </button>

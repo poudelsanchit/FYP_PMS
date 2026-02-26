@@ -20,7 +20,7 @@ export function IssueDescriptionInput({
             onChange={e => onChange(e.target.value)}
             placeholder={placeholder}
             rows={4}
-            className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground/80 placeholder:text-muted-foreground/30 focus:outline-none"
+            className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:text-foreground"
         />
     )
 }

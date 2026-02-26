@@ -40,15 +40,15 @@ export function IssuePillSelect({
             <PopoverTrigger asChild>
                 <button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-foreground hover:bg-muted transition-all"
                 >
                     {selected?.color ? (
                         <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: selected.color }} />
                     ) : (
-                        <span className="shrink-0 opacity-60">{icon}</span>
+                        <span className="shrink-0">{icon}</span>
                     )}
                     <span>{selected?.name ?? placeholder}</span>
-                    <ChevronDown className="h-3 w-3 opacity-40" />
+                    <ChevronDown className="h-3 w-3" />
                 </button>
             </PopoverTrigger>
 
@@ -63,7 +63,7 @@ export function IssuePillSelect({
                     onClick={() => onChange('')}
                     className={cn(
                         'w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs text-left transition-colors hover:bg-muted',
-                        !value ? 'text-foreground font-medium' : 'text-muted-foreground'
+                        !value ? 'text-foreground font-semibold bg-muted/50' : 'text-foreground'
                     )}
                 >
                     <span>None</span>
@@ -80,7 +80,7 @@ export function IssuePillSelect({
                         onClick={() => onChange(opt.id)}
                         className={cn(
                             'w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs text-left transition-colors hover:bg-muted',
-                            value === opt.id ? 'text-foreground font-medium' : 'text-muted-foreground'
+                            value === opt.id ? 'text-foreground font-semibold bg-muted/50' : 'text-foreground'
                         )}
                     >
                         <span className="flex items-center gap-2">

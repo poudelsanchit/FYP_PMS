@@ -77,7 +77,7 @@ export function InviteMembersDialog({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       handleAddEmail();
     } else if (e.key === "Backspace" && !inputValue && emails.length > 0) {
@@ -202,7 +202,7 @@ export function InviteMembersDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Press Enter or paste multiple emails separated by commas or
+              Press Enter or Tab to add email, or paste multiple emails separated by commas or
               spaces
             </p>
           </div>

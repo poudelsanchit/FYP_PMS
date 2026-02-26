@@ -32,14 +32,14 @@ export function IssueStatusPill({ value, options, onChange }: IssueStatusPillPro
             <PopoverTrigger asChild>
                 <button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border/60 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium border border-border bg-background text-foreground hover:bg-muted transition-all"
                 >
                     <span
                         className="h-2 w-2 rounded-full shrink-0"
                         style={{ backgroundColor: selected?.color ?? '#6b7280' }}
                     />
                     {selected?.name ?? 'Status'}
-                    <ChevronDown className="h-3 w-3 opacity-40" />
+                    <ChevronDown className="h-3 w-3" />
                 </button>
             </PopoverTrigger>
 
@@ -55,7 +55,7 @@ export function IssueStatusPill({ value, options, onChange }: IssueStatusPillPro
                         onClick={() => onChange(opt.id)}
                         className={cn(
                             'w-full flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-left transition-colors hover:bg-muted',
-                            value === opt.id ? 'text-foreground font-medium' : 'text-muted-foreground'
+                            value === opt.id ? 'text-foreground font-semibold bg-muted/50' : 'text-foreground'
                         )}
                     >
                         <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: opt.color }} />

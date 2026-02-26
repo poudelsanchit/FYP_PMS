@@ -143,6 +143,33 @@ export const useProjectMembers = (orgId: string, projectId: string | null, canMa
         }
     }, [projectId, canManage, orgId])
 
+    const changeRole = useCallback(async (memberId: string, newRole: 'PROJECT_LEAD' | 'PROJECT_MEMBER'): Promise<boolean> => {
+        if (!projectId || !canManage) return false
+
+        try {
+            const res = await fetch(
+                `/api/organizations/${orgId}/projects/${projectId}/members/${memberId}`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole }),
+                }
+            )
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error ?? 'Failed to change role')
+
+            // Update local state
+            setMembers((prev) =>
+                prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
+            )
+            return true
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong')
+            return false
+        }
+    }, [projectId, canManage, orgId])
+
     return {
         members,
         pendingInvites,
@@ -152,6 +179,7 @@ export const useProjectMembers = (orgId: string, projectId: string | null, canMa
         inviteMembers,
         removeMember,
         cancelInvite,
+        changeRole,
         refetch: fetchMembers,
         canManage,
     }
