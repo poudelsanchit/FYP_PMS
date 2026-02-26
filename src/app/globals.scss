@@ -1,5 +1,5 @@
-@import "../features/rich-text-editor/styles/_variables.scss";
-@import "../features/rich-text-editor/styles/_keyframe-animations.scss";
+@use "../features/rich-text-editor/styles/_variables.scss";
+@use "../features/rich-text-editor/styles/_keyframe-animations.scss";
 
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
