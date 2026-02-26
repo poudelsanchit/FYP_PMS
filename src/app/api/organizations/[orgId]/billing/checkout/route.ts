@@ -107,8 +107,8 @@ export async function POST(req: NextRequest, { params }: Params) {
             mode: "subscription",
             payment_method_types: ["card"],
             line_items: [{ price: priceId, quantity: 1 }],
-            success_url: `${baseUrl}/app/${orgId}/settings?billing=success`,
-            cancel_url: `${baseUrl}/app/${orgId}/settings?billing=canceled`,
+            success_url: `${baseUrl}/app/${orgId}?billing=success`,
+            cancel_url: `${baseUrl}/app/${orgId}?billing=canceled`,
             subscription_data: {
                 metadata: {
                     organizationId: orgId,

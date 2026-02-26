@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useDashboard } from "@/features/dashboard/hooks/useDashboard";
 import { ProjectCard } from "@/features/dashboard/components/Projectcard";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { CreateProject } from "@/features/projects/components/CreateProject";
 import { Button } from "@/core/components/ui/button";
-import { Folder, FolderKanban, Kanban, Plus } from "lucide-react";
+import { Folder, FolderKanban, Kanban, Plus, Check, X } from "lucide-react";
+import { useToast } from "@/core/components/ui/use-toast";
 
 function CardSkeleton() {
     return (
@@ -42,9 +43,36 @@ function CardSkeleton() {
 
 export default function OrganizationPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
+    const router = useRouter();
     const tenantId = params?.tenantId as string;
     const { projects, isLoading, error, refetch } = useDashboard(tenantId);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const { toast } = useToast();
+
+    // Handle billing success/cancel notifications
+    useEffect(() => {
+        const billingStatus = searchParams.get("billing");
+        
+        if (billingStatus === "success") {
+            toast({
+                title: "Payment successful!",
+                description: "Your plan has been upgraded successfully.",
+                duration: 5000,
+            });
+            // Clean up URL
+            router.replace(`/app/${tenantId}`);
+        } else if (billingStatus === "canceled") {
+            toast({
+                title: "Payment canceled",
+                description: "No charges were made to your account.",
+                variant: "destructive",
+                duration: 5000,
+            });
+            // Clean up URL
+            router.replace(`/app/${tenantId}`);
+        }
+    }, [searchParams, router, tenantId, toast]);
 
     return (
         <div className="p-6 w-full">

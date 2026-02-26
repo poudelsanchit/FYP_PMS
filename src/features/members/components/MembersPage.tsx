@@ -2,8 +2,10 @@
 
 import { useParams } from "next/navigation";
 import { Button } from "@/core/components/ui/button";
-import { UserPlus, Crown, User as UserIcon, Mail, MoreVertical } from "lucide-react";
+import { UserPlus, Crown, User as UserIcon, Mail, MoreVertical, Shield, UserX } from "lucide-react";
 import { InviteMembersDialog } from "./InviteMembersDialog";
+import { ChangeRoleDialog } from "./ChangeRoleDialog";
+import { RemoveMemberDialog } from "./RemoveMemberDialog";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/core/components/ui/avatar";
 import { Badge } from "@/core/components/ui/badge";
@@ -12,66 +14,70 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/core/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
-
-interface Member {
-  id: string;
-  role: string;
-  user: {
-    id: string;
-    email: string;
-    name: string | null;
-    avatar: string | null;
-  };
-}
-
-interface Invitation {
-  id: string;
-  email: string;
-  role: string;
-  createdAt: string;
-  expiresAt: string;
-}
+import { useMembers, type Member } from "../hooks/useMembers";
 
 export function MembersPage() {
   const params = useParams();
   const orgId = params.tenantId as string;
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isChangeRoleDialogOpen, setIsChangeRoleDialogOpen] = useState(false);
+  const [isRemoveMemberDialogOpen, setIsRemoveMemberDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const { setSegments, clear } = useBreadcrumbStore();
+
+  const {
+    members,
+    invitations,
+    isLoading,
+    error,
+    refetch,
+    updateMemberRole,
+    removeMember,
+  } = useMembers(orgId);
 
   useEffect(() => {
     setSegments([{ label: "Members" }]);
     return () => clear();
   }, [setSegments, clear]);
 
-  const fetchMembers = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/organizations/${orgId}/members`);
-      if (response.ok) {
-        const data = await response.json();
-        setMembers(data.members || []);
-        setInvitations(data.invitations || []);
-      }
-    } catch (error) {
-      toast.error("Failed to load members");
-    } finally {
-      setIsLoading(false);
+  const handleInviteSuccess = () => {
+    refetch();
+  };
+
+  const handleChangeRole = (member: Member) => {
+    setSelectedMember(member);
+    setIsChangeRoleDialogOpen(true);
+  };
+
+  const handleRemoveMember = (member: Member) => {
+    setSelectedMember(member);
+    setIsRemoveMemberDialogOpen(true);
+  };
+
+  const handleConfirmRoleChange = async (
+    memberId: string,
+    newRole: "ORG_ADMIN" | "ORG_MEMBER"
+  ) => {
+    const result = await updateMemberRole(memberId, newRole);
+    if (result.success) {
+      toast.success("Member role updated successfully");
+    } else {
+      toast.error(result.error || "Failed to update member role");
     }
   };
 
-  useEffect(() => {
-    fetchMembers();
-  }, [orgId]);
-
-  const handleInviteSuccess = () => {
-    fetchMembers();
+  const handleConfirmRemoveMember = async (memberId: string) => {
+    const result = await removeMember(memberId);
+    if (result.success) {
+      toast.success("Member removed successfully");
+    } else {
+      toast.error(result.error || "Failed to remove member");
+    }
   };
 
   return (
@@ -152,8 +158,16 @@ export function MembersPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Change role</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem onClick={() => handleChangeRole(member)}>
+                        <Shield className="w-4 h-4 mr-2" />
+                        Change role
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleRemoveMember(member)}
+                      >
+                        <UserX className="w-4 h-4 mr-2" />
                         Remove member
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -215,6 +229,20 @@ export function MembersPage() {
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
         onSuccess={handleInviteSuccess}
+      />
+
+      <ChangeRoleDialog
+        open={isChangeRoleDialogOpen}
+        onOpenChange={setIsChangeRoleDialogOpen}
+        member={selectedMember}
+        onConfirm={handleConfirmRoleChange}
+      />
+
+      <RemoveMemberDialog
+        open={isRemoveMemberDialogOpen}
+        onOpenChange={setIsRemoveMemberDialogOpen}
+        member={selectedMember}
+        onConfirm={handleConfirmRemoveMember}
       />
     </div>
   );

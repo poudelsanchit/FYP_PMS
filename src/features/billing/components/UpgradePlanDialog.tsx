@@ -36,18 +36,21 @@ function PlanCard({
   billingCycle,
   onSelect,
   isRedirecting,
+  redirectingPlanId,
 }: {
   planId: PlanId;
   currentPlanId: PlanId;
   billingCycle: "monthly" | "yearly";
   onSelect: (planId: PlanId) => void;
   isRedirecting: boolean;
+  redirectingPlanId: PlanId | null;
 }) {
   const plan = PLANS[planId];
   const isCurrent = planId === currentPlanId;
   const isDowngrade =
     ["FREE", "PREMIUM", "ENTERPRISE"].indexOf(planId) <
     ["FREE", "PREMIUM", "ENTERPRISE"].indexOf(currentPlanId);
+  const isThisCardRedirecting = isRedirecting && redirectingPlanId === planId;
 
   const price =
     billingCycle === "yearly" ? plan.price.yearly : plan.price.monthly;
@@ -158,7 +161,7 @@ function PlanCard({
         }
         onClick={() => onSelect(planId)}
       >
-        {isRedirecting ? (
+        {isThisCardRedirecting ? (
           <>
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Redirecting...
           </>
@@ -190,8 +193,12 @@ export function UpgradePlanDialog({
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly"
   );
+  const [redirectingPlanId, setRedirectingPlanId] = useState<PlanId | null>(
+    null
+  );
 
   function handleSelectPlan(planId: PlanId) {
+    setRedirectingPlanId(planId);
     if (planId === "FREE") {
       openPortal(); // downgrade via portal
       return;
@@ -248,6 +255,7 @@ export function UpgradePlanDialog({
               billingCycle={billingCycle}
               onSelect={handleSelectPlan}
               isRedirecting={isRedirecting}
+              redirectingPlanId={redirectingPlanId}
             />
           ))}
         </div>
