@@ -10,6 +10,7 @@ import { useProjectPriorities } from '@/features/projects/settings/hooks/Useproj
 import { useProjectMembers } from '@/features/projects/hooks/useProjectMembers'
 import type { Issue } from '@/features/kanban/types/types'
 import { cn } from '@/core/utils/utils'
+import { IssueActivityType } from '@/generated/prisma/enums'
 
 interface PageProps {
     params: Promise<{ tenantId: string; projectId: string; boardId: string; issueId: string }>
@@ -18,7 +19,7 @@ interface PageProps {
 interface IssueWithActivities extends Issue {
     activities?: Array<{
         id: string
-        type: string
+        type: IssueActivityType
         oldValue?: string | null
         newValue?: string | null
         createdAt: Date

@@ -36,7 +36,6 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     id: string;
     name: string;
     logo?: string;
-    plan?: string;
     memberCount?: number;
     role?: "ORG_ADMIN" | "ORG_MEMBER";
   };

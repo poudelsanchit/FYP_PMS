@@ -5,7 +5,6 @@ export interface CurrentOrganization {
   id: string;
   name: string;
   logo?: string;
-  plan?: string;
   memberCount?: number;
   role?: "ORG_ADMIN" | "ORG_MEMBER";
 }

@@ -10,7 +10,6 @@
 import { NextRequest } from "next/server";
 import { err, getAuthUserId, ok } from "@/core/lib/api/api";
 import { prisma } from "@/core/lib/prisma/prisma";
-import { checkDocsLimit } from "@/core/lib/billing/limits";
 
 interface Context {
   params: Promise<{ projectId: string }>;
@@ -121,12 +120,6 @@ export async function POST(req: NextRequest, { params }: Context) {
     where: { id: projectId },
   });
   if (!project) return err("Project not found", 404);
-
-  // Check docs limit
-  const limitCheck = await checkDocsLimit(project.organizationId);
-  if (!limitCheck.allowed) {
-    return err(limitCheck.message || "Docs limit reached", 403);
-  }
 
   // Create new doc with defaults
   const doc = await prisma.doc.create({

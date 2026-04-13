@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/core/lib/auth/authOptions";
 import { prisma } from "@/core/lib/prisma/prisma";
 import { OrganizationRole } from "@/generated/prisma/enums";
-import { checkMemberLimit } from "@/core/lib/billing/limits";
 
 export async function POST(
   req: NextRequest,
@@ -38,15 +37,6 @@ export async function POST(
     if (!member) {
       return NextResponse.json(
         { error: "Only organization admins can invite members" },
-        { status: 403 }
-      );
-    }
-
-    // Check member limit before processing invitations
-    const limitCheck = await checkMemberLimit(orgId);
-    if (!limitCheck.allowed) {
-      return NextResponse.json(
-        { error: limitCheck.message || "Member limit reached" },
         { status: 403 }
       );
     }

@@ -12,7 +12,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/core/lib/prisma/prisma";
 import { err, getAuthUserId, ok } from "@/core/lib/api/api";
-import { checkProjectLimit } from "@/core/lib/billing/limits";
 
 interface Context {
   params: Promise<{ orgId: string }>;
@@ -102,12 +101,6 @@ export async function POST(req: NextRequest, { params }: Context) {
 
   const keyRegex = /^[A-Za-z0-9]{2,10}$/;
   if (!keyRegex.test(key)) return err("Key must be 2-10 alphanumeric characters");
-
-  // Check project limit
-  const limitCheck = await checkProjectLimit(orgId);
-  if (!limitCheck.allowed) {
-    return err(limitCheck.message || "Project limit reached", 403);
-  }
 
   // Key must be unique within the organization
   const existing = await prisma.project.findFirst({

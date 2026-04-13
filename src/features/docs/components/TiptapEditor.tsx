@@ -45,13 +45,6 @@ export function TiptapEditor({
         heading: {
           levels: [1, 2, 3],
         },
-        bold: true,
-        italic: true,
-        bulletList: true,
-        orderedList: true,
-        codeBlock: true,
-        blockquote: true,
-        horizontalRule: true,
       }),
       Placeholder.configure({
         placeholder,
@@ -77,7 +70,7 @@ export function TiptapEditor({
       const currentContent = JSON.stringify(editor.getJSON());
       if (currentContent !== content) {
         const parsedContent = parseContent(content);
-        editor.commands.setContent(parsedContent, false);
+        editor.commands.setContent(parsedContent);
       }
     }
   }, [content, editor]);

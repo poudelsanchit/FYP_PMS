@@ -18,10 +18,5 @@ export const sidebarLinks = {
       url: "/inbox",
       icon: Inbox,
     },
-    {
-      title: "Meetings",
-      url: "/meetings",
-      icon: Video,
-    },
   ],
 };

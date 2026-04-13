@@ -14,7 +14,7 @@ import { outfit } from "@/core/fonts/outfit";
 import { ThemeToggle } from "@/core/components/theme/theme-toggle";
 import { useBreadcrumbStore } from "@/store/breadcrumb-store";
 
-export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, tenantId, currentOrg, isLoadingOrg }: { children: React.ReactNode, sidebarLinks: ISidebarLinks, navHeaderData: IHeaderData, tenantId?: string, currentOrg?: { id: string; name: string; logo?: string; plan?: string; memberCount?: number }, isLoadingOrg?: boolean }) {
+export function ReusableSidebarLayout({ children, sidebarLinks, navHeaderData, tenantId, currentOrg, isLoadingOrg }: { children: React.ReactNode, sidebarLinks: ISidebarLinks, navHeaderData: IHeaderData, tenantId?: string, currentOrg?: { id: string; name: string; logo?: string; memberCount?: number }, isLoadingOrg?: boolean }) {
 
     const userData = useUserData();
     const segments = useBreadcrumbStore(state => state.segments);

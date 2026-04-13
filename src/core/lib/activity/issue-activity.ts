@@ -1,5 +1,5 @@
 import { prisma } from "@/core/lib/prisma/prisma";
-import { IssueActivityType } from "@/generated/prisma";
+import { IssueActivityType } from "@/generated/prisma/enums";
 
 export async function logIssueActivity(
   issueId: string,

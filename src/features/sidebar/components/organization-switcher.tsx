@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { ChevronsUpDown, Plus, Users, Crown, Zap, Building2, Sparkles } from "lucide-react";
+import { ChevronsUpDown, Plus, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,54 +20,24 @@ import Image from "next/image";
 import { useUserOrganizations } from "../hooks/useUserOrganizations";
 import { Skeleton } from "@/core/components/ui/skeleton";
 import { CreateOrganizationDialog } from "./create-organization-dialog";
-import { UpgradePlanDialog } from "@/features/billing/components/UpgradePlanDialog";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/core/components/ui/use-toast";
-import axios from "axios";
 
 interface OrganizationSwitcherProps {
   currentOrg: {
     id: string;
     name: string;
     logo?: string;
-    plan?: string;
     memberCount?: number;
   };
 }
-
-const planIcons = {
-  FREE: Zap,
-  PREMIUM: Crown,
-  ENTERPRISE: Building2,
-};
-
-const planColors = {
-  FREE: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20",
-  PREMIUM: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-  ENTERPRISE: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-};
 
 export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) {
   const { isMobile } = useSidebar();
   const { organizations, isLoading, refetch } = useUserOrganizations();
   const [showCreateDialog, setShowCreateDialog] = React.useState(false);
-  const [showUpgradeDialog, setShowUpgradeDialog] = React.useState(false);
-  const [currentPlan, setCurrentPlan] = React.useState<"FREE" | "PREMIUM" | "ENTERPRISE">("FREE");
   const router = useRouter();
   const { toast } = useToast();
-
-  // Fetch current plan
-  React.useEffect(() => {
-    const fetchPlan = async () => {
-      try {
-        const res = await axios.get(`/api/organizations/${currentOrg.id}/billing`);
-        setCurrentPlan(res.data.plan || "FREE");
-      } catch (error) {
-        console.error("Failed to fetch plan:", error);
-      }
-    };
-    fetchPlan();
-  }, [currentOrg.id]);
 
   const handleOrgSwitch = (orgId: string) => {
     const targetOrg = organizations.find(org => org.id === orgId);
@@ -103,8 +73,6 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
     );
   }
 
-  const PlanIcon = planIcons[currentPlan];
-
   return (
     <>
       <SidebarMenu>
@@ -132,18 +100,9 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
                 </div>
                 <div className="grid flex-1 gap-0.5 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{currentOrg.name}</span>
-                  <div className="flex items-center gap-1.5">
-                    <Badge
-                      variant="outline"
-                      className={`text-[9px] px-1.5 py-0 h-4 font-medium ${planColors[currentPlan]}`}
-                    >
-                      <PlanIcon className="w-2.5 h-2.5 mr-0.5" />
-                      {currentPlan}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      · {currentOrg.memberCount || 1} member{currentOrg.memberCount !== 1 ? "s" : ""}
-                    </span>
-                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {currentOrg.memberCount || 1} member{currentOrg.memberCount !== 1 ? "s" : ""}
+                  </span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
               </SidebarMenuButton>
@@ -157,17 +116,6 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 {currentOrg.name}
               </DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => setShowUpgradeDialog(true)}
-                className="gap-2 p-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border border-blue-500/20"
-              >
-                <div className="flex items-center justify-center size-4 rounded bg-gradient-to-br from-blue-500 to-purple-600">
-                  <Sparkles className="size-2.5 text-white" />
-                </div>
-                <span className="font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Upgrade Plan
-                </span>
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => router.push(`/app/${currentOrg.id}/members`)}
                 className="gap-2 p-2"
@@ -218,13 +166,6 @@ export function OrganizationSwitcher({ currentOrg }: OrganizationSwitcherProps) 
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSuccess={handleCreateSuccess}
-      />
-
-      <UpgradePlanDialog
-        open={showUpgradeDialog}
-        onOpenChange={setShowUpgradeDialog}
-        orgId={currentOrg.id}
-        currentPlan={currentPlan}
       />
     </>
   );

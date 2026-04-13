@@ -26,23 +26,6 @@ enum DocStatus {
   PUBLISHED
 }
 
-// ─── Billing ──────────────────────────────────────────────────────────────────
-
-enum PlanTier {
-  FREE
-  PREMIUM
-  ENTERPRISE
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELED
-  PAST_DUE
-  TRIALING
-  INCOMPLETE
-  UNPAID
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 model User {
@@ -59,8 +42,6 @@ model User {
   projectMembers      ProjectMember[]
   projectInvitations  ProjectInvitation[]
   issueAssignees      IssueAssignee[]
-  meetingRooms        MeetingRoom[]
-  meetingParticipants MeetingParticipant[]
   docs                Doc[]
 
   @@map("users")
@@ -78,17 +59,15 @@ model OTP {
 }
 
 model Organization {
-  id           String                   @id @default(uuid())
-  name         String
-  isActive     Boolean                  @default(true)
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-  invitations  OrganizationInvitation[]
-  members      OrganizationMember[]
-  projects     Project[]
-  boards       Board[]
-  meetingRooms MeetingRoom[]
-  subscription OrganizationSubscription? // NEW
+  id          String                   @id @default(uuid())
+  name        String
+  isActive    Boolean                  @default(true)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  invitations OrganizationInvitation[]
+  members     OrganizationMember[]
+  projects    Project[]
+  boards      Board[]
 }
 
 model OrganizationMember {
@@ -120,34 +99,6 @@ model OrganizationInvitation {
   @@index([organizationId])
   @@index([email])
   @@index([token])
-}
-
-// ─── Subscription ─────────────────────────────────────────────────────────────
-
-model OrganizationSubscription {
-  id                     String             @id @default(uuid())
-  organizationId         String             @unique
-  plan                   PlanTier           @default(FREE)
-  status                 SubscriptionStatus @default(ACTIVE)
-
-  // Stripe identifiers
-  stripeCustomerId       String?            @unique
-  stripeSubscriptionId   String?            @unique
-  stripePriceId          String?
-  stripeCurrentPeriodEnd DateTime?          // when the current billing period ends
-
-  cancelAtPeriodEnd      Boolean            @default(false)
-  trialEndsAt            DateTime?
-
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([stripeCustomerId])
-  @@index([stripeSubscriptionId])
-  @@map("organization_subscriptions")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -340,42 +291,8 @@ model ProjectPriority {
   @@index([projectId])
 }
 
-// ─── Meeting Rooms ────────────────────────────────────────────────────────────
 
-model MeetingRoom {
-  id             String    @id @default(uuid())
-  organizationId String
-  name           String
-  description    String?
-  password       String
-  createdById    String
-  isActive       Boolean   @default(true)
-  scheduledAt    DateTime?
-  endedAt        DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
 
-  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy    User                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  participants MeetingParticipant[]
-
-  @@index([organizationId])
-  @@index([createdById])
-}
-
-model MeetingParticipant {
-  id       String   @id @default(uuid())
-  roomId   String
-  userId   String
-  joinedAt DateTime @default(now())
-
-  room MeetingRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([roomId, userId])
-  @@index([roomId])
-  @@index([userId])
-}
 
 // ─── Documentation ────────────────────────────────────────────────────────────
 

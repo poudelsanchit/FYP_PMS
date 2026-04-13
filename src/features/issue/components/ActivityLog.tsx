@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDistanceToNow } from 'date-fns'
-import { IssueActivityType } from '@/generated/prisma'
+import { IssueActivityType } from '@/generated/prisma/enums'
 import { cn } from '@/core/utils/utils'
 
 interface Activity {
