@@ -16,6 +16,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/core/lib/prisma/prisma";
 import { err, ok } from "@/core/lib/api/api";
 import { resolveBoardAccess } from "@/core/lib/api/board-access";
+import { logIssueActivity } from "@/core/lib/activity/issue-activity";
 
 interface Context {
   params: Promise<{ orgId: string; projectId: string; boardId: string }>;
@@ -116,6 +117,14 @@ export async function POST(req: NextRequest, { params }: Context) {
         labelId: labelId ?? null,
         priorityId: priorityId ?? null,
         dueDate: dueDate ? new Date(dueDate) : null,
+      },
+    });
+
+    // Log creation activity
+    await tx.issueActivity.create({
+      data: {
+        issueId: created.id,
+        type: "CREATED",
       },
     });
 

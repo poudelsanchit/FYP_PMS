@@ -6,4 +6,4 @@ ALTER TABLE "Issue" ADD COLUMN     "completedAt" TIMESTAMP(3),
 ADD COLUMN     "dueDate" TIMESTAMP(3);
 
 -- DropEnum
-DROP TYPE "BoardRole";
+DROP TYPE "BoardRole" CASCADE;

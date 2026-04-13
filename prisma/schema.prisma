@@ -256,16 +256,43 @@ model Issue {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  column    Column           @relation(fields: [columnId], references: [id], onDelete: Restrict)
-  label     ProjectLabel?    @relation(fields: [labelId], references: [id], onDelete: SetNull)
-  priority  ProjectPriority? @relation(fields: [priorityId], references: [id], onDelete: SetNull)
-  assignees IssueAssignee[]
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  column     Column           @relation(fields: [columnId], references: [id], onDelete: Restrict)
+  label      ProjectLabel?    @relation(fields: [labelId], references: [id], onDelete: SetNull)
+  priority   ProjectPriority? @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+  assignees  IssueAssignee[]
+  activities IssueActivity[]
 
   @@index([projectId])
   @@index([columnId])
   @@index([labelId])
   @@index([priorityId])
+}
+
+enum IssueActivityType {
+  CREATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  LABEL_CHANGED
+  ASSIGNEE_ADDED
+  ASSIGNEE_REMOVED
+  TITLE_CHANGED
+  DESCRIPTION_CHANGED
+  DUE_DATE_CHANGED
+}
+
+model IssueActivity {
+  id        String              @id @default(uuid())
+  issueId   String
+  type      IssueActivityType
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime            @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@index([createdAt])
 }
 
 model IssueAssignee {

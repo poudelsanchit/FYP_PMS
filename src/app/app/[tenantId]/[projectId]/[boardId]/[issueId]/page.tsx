@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, ArrowLeft, Trash2, Tag, AlertTriangle } from 'lucide-react'
 import { MetadataField, LabelField, PriorityField, AssigneeField, DueDateField, StatusField } from '@/features/issue/components/MetadataField'
+import { ActivityLog } from '@/features/issue/components/ActivityLog'
 import { useProjectLabels } from '@/features/projects/settings/hooks/useProjectLabel'
 import { useProjectPriorities } from '@/features/projects/settings/hooks/Useprojectpriorities'
 import { useProjectMembers } from '@/features/projects/hooks/useProjectMembers'
@@ -14,11 +15,21 @@ interface PageProps {
     params: Promise<{ tenantId: string; projectId: string; boardId: string; issueId: string }>
 }
 
+interface IssueWithActivities extends Issue {
+    activities?: Array<{
+        id: string
+        type: string
+        oldValue?: string | null
+        newValue?: string | null
+        createdAt: Date
+    }>
+}
+
 export default function IssueDetailPage({ params }: PageProps) {
     const { tenantId, projectId, boardId, issueId } = use(params)
     const router = useRouter()
 
-    const [issue, setIssue] = useState<Issue | null>(null)
+    const [issue, setIssue] = useState<IssueWithActivities | null>(null)
     const [columns, setColumns] = useState<Array<{ id: string; name: string; isCompleted: boolean }>>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -253,7 +264,16 @@ export default function IssueDetailPage({ params }: PageProps) {
                         {/* Activity section */}
                         <div className="mt-12 pt-8 border-t border-border">
                             <h3 className="text-sm font-semibold text-foreground mb-4">Activity</h3>
-                            <p className="text-sm text-muted-foreground">Activity feed coming soon…</p>
+                            {issue.activities && issue.activities.length > 0 ? (
+                                <ActivityLog
+                                    activities={issue.activities}
+                                    labels={Object.fromEntries(labels.map(l => [l.id, { name: l.name, color: l.color }]))}
+                                    priorities={Object.fromEntries(priorities.map(p => [p.id, { name: p.name, color: p.color }]))}
+                                    columns={Object.fromEntries(columns.map(c => [c.id, { name: c.name }]))}
+                                />
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No activity yet</p>
+                            )}
                         </div>
                     </div>
                 </div>

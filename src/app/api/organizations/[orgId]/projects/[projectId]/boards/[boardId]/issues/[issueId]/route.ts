@@ -17,6 +17,7 @@ import {
   canManageBoard,
   resolveBoardAccess,
 } from "@/core/lib/api/board-access";
+import { logIssueActivity } from "@/core/lib/activity/issue-activity";
 
 interface Context {
   params: Promise<{
@@ -52,6 +53,9 @@ export async function GET(req: NextRequest, { params }: Context) {
         include: {
           user: { select: { id: true, name: true, email: true, avatar: true } },
         },
+      },
+      activities: {
+        orderBy: { createdAt: "desc" },
       },
     },
   });
@@ -109,30 +113,105 @@ export async function PATCH(req: NextRequest, { params }: Context) {
     completedAt = targetColumn.isCompleted ? new Date() : null;
   }
 
-  const updated = await prisma.issue.update({
-    where: { id: issueId },
-    data: {
-      ...(title?.trim() && { title: title.trim() }),
-      ...(description !== undefined && {
-        description: description?.trim() ?? null,
-      }),
-      ...(columnId && { columnId }),
-      ...(resolvedOrder !== undefined && { order: resolvedOrder }),
-      ...(labelId !== undefined && { labelId: labelId ?? null }),
-      ...(priorityId !== undefined && { priorityId: priorityId ?? null }),
-      ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
-      ...(completedAt !== undefined && { completedAt }),
-    },
-    include: {
-      label: true,
-      priority: true,
-      column: { select: { id: true, name: true } },
-      assignees: {
-        include: {
-          user: { select: { id: true, name: true, email: true, avatar: true } },
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.issue.update({
+      where: { id: issueId },
+      data: {
+        ...(title?.trim() && { title: title.trim() }),
+        ...(description !== undefined && {
+          description: description?.trim() ?? null,
+        }),
+        ...(columnId && { columnId }),
+        ...(resolvedOrder !== undefined && { order: resolvedOrder }),
+        ...(labelId !== undefined && { labelId: labelId ?? null }),
+        ...(priorityId !== undefined && { priorityId: priorityId ?? null }),
+        ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+        ...(completedAt !== undefined && { completedAt }),
+      },
+      include: {
+        label: true,
+        priority: true,
+        column: { select: { id: true, name: true } },
+        assignees: {
+          include: {
+            user: { select: { id: true, name: true, email: true, avatar: true } },
+          },
         },
       },
-    },
+    });
+
+    // Log activities for changes
+    if (columnId && columnId !== issue.columnId) {
+      await tx.issueActivity.create({
+        data: {
+          issueId,
+          type: "STATUS_CHANGED",
+          oldValue: issue.columnId,
+          newValue: columnId,
+        },
+      });
+    }
+
+    if (labelId !== undefined && labelId !== issue.labelId) {
+      await tx.issueActivity.create({
+        data: {
+          issueId,
+          type: "LABEL_CHANGED",
+          oldValue: issue.labelId ?? undefined,
+          newValue: labelId ?? undefined,
+        },
+      });
+    }
+
+    if (priorityId !== undefined && priorityId !== issue.priorityId) {
+      await tx.issueActivity.create({
+        data: {
+          issueId,
+          type: "PRIORITY_CHANGED",
+          oldValue: issue.priorityId ?? undefined,
+          newValue: priorityId ?? undefined,
+        },
+      });
+    }
+
+    if (title?.trim() && title.trim() !== issue.title) {
+      await tx.issueActivity.create({
+        data: {
+          issueId,
+          type: "TITLE_CHANGED",
+          oldValue: issue.title,
+          newValue: title.trim(),
+        },
+      });
+    }
+
+    if (description !== undefined && description !== issue.description) {
+      await tx.issueActivity.create({
+        data: {
+          issueId,
+          type: "DESCRIPTION_CHANGED",
+          oldValue: issue.description ?? undefined,
+          newValue: description ?? undefined,
+        },
+      });
+    }
+
+    if (dueDate !== undefined) {
+      const oldDueDate = issue.dueDate?.toISOString() ?? undefined;
+      const newDueDate = dueDate ? new Date(dueDate).toISOString() : undefined;
+      if (oldDueDate !== newDueDate) {
+        await tx.issueActivity.create({
+          data: {
+            issueId,
+            type: "DUE_DATE_CHANGED",
+            oldValue: oldDueDate,
+            newValue: newDueDate,
+          },
+        });
+      }
+    }
+
+    return result;
   });
 
   return ok(updated);

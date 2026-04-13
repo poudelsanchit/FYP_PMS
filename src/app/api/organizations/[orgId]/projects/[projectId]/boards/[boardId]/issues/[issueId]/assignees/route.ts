@@ -13,6 +13,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/core/lib/prisma/prisma";
 import { err, ok } from "@/core/lib/api/api";
 import { resolveBoardAccess } from "@/core/lib/api/board-access";
+import { logIssueActivity } from "@/core/lib/activity/issue-activity";
 
 interface Context {
   params: Promise<{
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest, { params }: Context) {
 
   const projectMember = await prisma.projectMember.findUnique({
     where: { projectId_userId: { projectId, userId: assigneeId } },
+    include: { user: { select: { id: true, name: true } } },
   });
   if (!projectMember) return err("User is not a member of this project");
 
@@ -74,11 +76,24 @@ export async function POST(req: NextRequest, { params }: Context) {
   });
   if (existing) return err("User is already assigned to this issue");
 
-  const assignee = await prisma.issueAssignee.create({
-    data: { issueId, userId: assigneeId },
-    include: {
-      user: { select: { id: true, name: true, email: true, avatar: true } },
-    },
+  const assignee = await prisma.$transaction(async (tx) => {
+    const created = await tx.issueAssignee.create({
+      data: { issueId, userId: assigneeId },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
+    });
+
+    // Log assignee added activity
+    await tx.issueActivity.create({
+      data: {
+        issueId,
+        type: "ASSIGNEE_ADDED",
+        newValue: projectMember.user.name || projectMember.user.id,
+      },
+    });
+
+    return created;
   });
 
   return ok(assignee, 201);
@@ -98,11 +113,23 @@ export async function DELETE(req: NextRequest, { params }: Context) {
 
   const assignee = await prisma.issueAssignee.findUnique({
     where: { issueId_userId: { issueId, userId: assigneeId } },
+    include: { user: { select: { id: true, name: true } } },
   });
   if (!assignee) return err("User is not assigned to this issue");
 
-  await prisma.issueAssignee.delete({
-    where: { issueId_userId: { issueId, userId: assigneeId } },
+  await prisma.$transaction(async (tx) => {
+    await tx.issueAssignee.delete({
+      where: { issueId_userId: { issueId, userId: assigneeId } },
+    });
+
+    // Log assignee removed activity
+    await tx.issueActivity.create({
+      data: {
+        issueId,
+        type: "ASSIGNEE_REMOVED",
+        oldValue: assignee.user.name || assignee.user.id,
+      },
+    });
   });
 
   return ok({ message: "Assignee removed" });
